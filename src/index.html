@@ -30,6 +30,16 @@
   .lava-scroll-surface::-webkit-scrollbar-track{background:transparent}
   .lava-scroll-surface::-webkit-scrollbar-thumb{background:rgba(255,160,80,.28);border-radius:999px}
   .drag-pass{pointer-events:none;-webkit-user-select:none;user-select:none}
+  .panel-ring-readout{position:absolute;inset:0;pointer-events:none;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .panel-ring-readout__project,.panel-ring-readout__goal{position:absolute;right:0;left:0;height:13px;line-height:13px;text-align:center}
+  .panel-ring-readout__project{top:calc(50% - 29px);font-size:11px;color:rgba(255,180,110,.85);font-weight:600;letter-spacing:.02em}
+  .panel-ring-readout__time{position:absolute;top:calc(50% - 16px);right:0;left:0;height:32px;display:flex;align-items:center;justify-content:center;color:#fff2dd;line-height:1}
+  .panel-ring-readout__primary{font-size:24px;font-weight:300;line-height:1;letter-spacing:-.025em}
+  .panel-ring-readout__seconds{margin-left:1px;font-size:11px;font-weight:520;line-height:1;letter-spacing:-.02em;color:rgba(255,226,190,.68)}
+  .panel-ring-readout__goal{top:calc(50% + 16px);font-size:11.5px;color:rgba(255,160,90,.85);font-weight:600}
+  .capsule-pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:1px;padding-left:1px;color:#ffb765;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .capsule-pct__number{font-size:9.5px;line-height:1;letter-spacing:-.035em}
+  .capsule-pct__mark{margin-top:1px;font-size:6px;line-height:1;opacity:.82}
   a{color:#ffb765;text-decoration:none}
   a:hover{color:#ffd9a8}
   @keyframes lavaFlow{0%{background-position:0% 50%}100%{background-position:200% 50%}}
@@ -90,10 +100,12 @@
             <span style="{{ f.wdStyle }}">{{ f.wd }}</span>
           </div>
         </sc-for>
-        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;pointer-events:none">
-          <span style="font-size:11px;color:rgba(255,180,110,.85);font-weight:600;letter-spacing:.02em">{{ activeName }}</span>
-          <span style="font-size:25px;font-weight:300;letter-spacing:-.02em;color:#fff2dd;font-variant-numeric:tabular-nums">{{ timeStr }}</span>
-          <span style="font-size:11.5px;color:rgba(255,160,90,.85);font-weight:600">{{ pctStr }} · {{ goalStr }}</span>
+        <div class="panel-ring-readout">
+          <span class="panel-ring-readout__project">{{ activeName }}</span>
+          <span class="panel-ring-readout__time" aria-label="{{ timeStr }}">
+            <span class="panel-ring-readout__primary">{{ timePrimaryStr }}</span><span class="panel-ring-readout__seconds">{{ timeSecondsStr }}</span>
+          </span>
+          <span class="panel-ring-readout__goal">{{ pctStr }} · {{ goalStr }}</span>
         </div>
       </div>
 
@@ -140,7 +152,7 @@
           <circle cx="19" cy="19" r="15" fill="none" stroke="rgba(255,200,140,.12)" stroke-width="4"/>
           <circle cx="19" cy="19" r="15" fill="none" stroke="url(#ringLavaB)" stroke-width="4" stroke-linecap="round" stroke-dasharray="94.2" stroke-dashoffset="{{ miniRingOffset }}" style="transform:rotate(-90deg);transform-origin:19px 19px;transition:stroke-dashoffset .6s ease"/>
         </svg>
-        <span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:#ffb765;font-weight:700">{{ pctStr }}</span>
+        <span class="capsule-pct" aria-label="{{ pctStr }}"><span class="capsule-pct__number">{{ pctNumStr }}</span><span class="capsule-pct__mark">%</span></span>
       </div>
       <div class="drag-pass" style="display:flex;flex-direction:column;gap:1px">
         <span style="font-size:9.5px;color:rgba(255,180,110,.8);font-weight:600">{{ activeName }}</span>
@@ -559,6 +571,13 @@ class Component extends DCLogic {
     const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
     return h > 0 ? h + ':' + this.pad(m) + ':' + this.pad(s) : this.pad(m) + ':' + this.pad(s);
   }
+  timeParts(sec) {
+    const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+    return {
+      primary: h > 0 ? h + ':' + this.pad(m) : this.pad(m),
+      seconds: ':' + this.pad(s),
+    };
+  }
   hm(sec) {
     const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60);
     return h > 0 ? h + 'h ' + m + 'm' : m + 'm';
@@ -586,6 +605,8 @@ class Component extends DCLogic {
     const totalElapsed = this.totalElapsed();
     const totalGoal = this.totalGoal();
     const pct = Math.max(0, Math.min(100, (activeElapsed / active.goal) * 100));
+    const pctRounded = Math.round(pct);
+    const activeTimeParts = this.timeParts(activeElapsed);
     const running = !!s.runStart;
 
     const chipBase = { borderRadius: '999px', cursor: 'pointer', whiteSpace: 'nowrap', padding: '5px 12px', fontSize: '11.5px' };
@@ -773,11 +794,14 @@ class Component extends DCLogic {
       statusLabel: running ? '专注中 · ' + active.name : (activeElapsed > 0 ? '已暂停' : '待开始'),
       statusColor: running ? '#ff7a2d' : '#8a7a5a',
       timeStr: this.fmt(activeElapsed),
+      timePrimaryStr: activeTimeParts.primary,
+      timeSecondsStr: activeTimeParts.seconds,
       goalStr: this.goalLabel(active.goal),
       totalStr: this.hm(totalElapsed),
       totalGoalStr: this.goalLabel(totalGoal),
       remainStr: rem === 0 ? '本项目达成' : (rh > 0 ? '剩 ' + rh + 'h ' + rm + 'm' : '剩 ' + rm + 'm'),
-      pctStr: Math.round(pct) + '%',
+      pctStr: pctRounded + '%',
+      pctNumStr: String(pctRounded),
       ringOffset: circ * (1 - pct / 100),
       miniRingOffset: miniCirc * (1 - pct / 100),
       streak: this.computeStreak(s.history, totalElapsed > 0),

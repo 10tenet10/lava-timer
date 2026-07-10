@@ -1,0 +1,631 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LavaTimer · 极端数字状态 Demo</title>
+  <style>
+    /*
+      Assumptions
+      1. Demo 只验证数字层级，不改变窗口尺寸、圆环直径或计时逻辑。
+      2. 悬浮态仅拆分百分号字号；展开态仅在时长 >= 1h 时拆分秒数。
+      3. 秒数在所有时长下都使用同一辅助层级，避免一小时临界点跳变。
+    */
+    :root {
+      color-scheme: dark;
+      --ink: #fff2dd;
+      --muted: rgba(240, 200, 150, .52);
+      --line: rgba(255, 180, 90, .17);
+      --lava-1: #ffcf7a;
+      --lava-2: #ff7a2d;
+      --lava-3: #d0330a;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(70% 80% at 16% -5%, rgba(108, 45, 14, .42), transparent 70%),
+        #090504;
+      color: #f4e6cf;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    button { font: inherit; }
+
+    .page {
+      width: min(1120px, calc(100% - 40px));
+      margin: 0 auto;
+      padding: 48px 0 64px;
+    }
+
+    .intro {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 28px;
+      align-items: end;
+      padding-bottom: 26px;
+      border-bottom: 1px solid rgba(255, 190, 120, .13);
+    }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      color: #ffb765;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      max-width: 720px;
+      color: #fff3df;
+      font-size: clamp(30px, 4.8vw, 54px);
+      font-weight: 300;
+      letter-spacing: -.045em;
+      line-height: 1.04;
+      text-wrap: balance;
+    }
+
+    .summary {
+      max-width: 610px;
+      margin: 17px 0 0;
+      color: rgba(244, 222, 188, .62);
+      font-size: 14px;
+      line-height: 1.75;
+      text-wrap: pretty;
+    }
+
+    .legend {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      width: 212px;
+    }
+
+    .legend span {
+      display: block;
+      padding: 10px 11px;
+      border: 1px solid rgba(255, 190, 120, .12);
+      border-radius: 10px;
+      color: rgba(244, 222, 188, .52);
+      font-size: 11px;
+      text-align: center;
+    }
+
+    .legend .recommended {
+      border-color: rgba(255, 136, 48, .38);
+      background: rgba(255, 112, 32, .09);
+      color: #ffc887;
+    }
+
+    .case {
+      display: grid;
+      grid-template-columns: 210px minmax(0, 1fr);
+      gap: 34px;
+      padding: 34px 0;
+      border-bottom: 1px solid rgba(255, 190, 120, .1);
+    }
+
+    .case:last-child { border-bottom: 0; }
+
+    .case-number {
+      margin-bottom: 9px;
+      color: rgba(255, 183, 101, .65);
+      font: 700 10px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+      letter-spacing: .14em;
+    }
+
+    h2 {
+      margin: 0;
+      color: #f8e8d0;
+      font-size: 19px;
+      font-weight: 560;
+      letter-spacing: -.015em;
+    }
+
+    .case-copy {
+      margin: 10px 0 17px;
+      color: rgba(244, 222, 188, .5);
+      font-size: 12px;
+      line-height: 1.65;
+    }
+
+    .states {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+
+    .state-button {
+      min-width: 52px;
+      height: 29px;
+      padding: 0 10px;
+      border: 1px solid rgba(255, 190, 120, .13);
+      border-radius: 999px;
+      background: rgba(255, 220, 170, .03);
+      color: rgba(244, 222, 188, .54);
+      cursor: pointer;
+      font-size: 11px;
+      font-variant-numeric: tabular-nums;
+      transition: 160ms ease;
+    }
+
+    .state-button:hover { color: #ffd7a2; border-color: rgba(255, 166, 80, .32); }
+
+    .state-button.active {
+      border-color: rgba(255, 145, 54, .48);
+      background: rgba(255, 112, 32, .12);
+      color: #ffca88;
+    }
+
+    .comparison {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(260px, 1fr));
+      gap: 14px;
+    }
+
+    .sample {
+      min-height: 190px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 14px;
+      border: 1px solid rgba(255, 190, 120, .1);
+      border-radius: 18px;
+      background: rgba(255, 230, 195, .018);
+    }
+
+    .sample.is-recommended {
+      border-color: rgba(255, 136, 48, .23);
+      background: linear-gradient(155deg, rgba(255, 112, 32, .055), rgba(255, 230, 195, .012));
+    }
+
+    .sample-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      color: rgba(244, 222, 188, .46);
+      font-size: 10px;
+      letter-spacing: .08em;
+    }
+
+    .sample-head strong {
+      color: #ffb765;
+      font-size: 9px;
+      letter-spacing: .1em;
+    }
+
+    .stage {
+      min-height: 130px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 15px 8px 8px;
+    }
+
+    .capsule {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      padding: 9px 12px 9px 11px;
+      border-radius: 999px;
+      background: linear-gradient(158deg, rgba(48, 29, 18, .96), rgba(20, 12, 8, .95));
+      box-shadow: 0 20px 44px -24px rgba(0, 0, 0, .9), inset 0 1px rgba(255, 225, 170, .08);
+    }
+
+    .mini-ring {
+      position: relative;
+      width: 38px;
+      height: 38px;
+      flex: 0 0 38px;
+    }
+
+    .mini-ring svg,
+    .focus-ring svg { display: block; width: 100%; height: 100%; }
+
+    .mini-value {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffb765;
+      font-weight: 720;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .mini-value.current { font-size: 11px; }
+
+    .mini-value.adaptive {
+      gap: 1px;
+      padding-left: 1px;
+    }
+
+    .mini-value.adaptive .pct-number {
+      font-size: 9.5px;
+      line-height: 1;
+      letter-spacing: -.035em;
+    }
+
+    .mini-value.adaptive .pct-mark {
+      align-self: center;
+      margin-top: 1px;
+      font-size: 6px;
+      line-height: 1;
+      opacity: .82;
+    }
+
+    .capsule-copy {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .capsule-copy small {
+      color: rgba(255, 180, 110, .8);
+      font-size: 9.5px;
+      font-weight: 650;
+    }
+
+    .capsule-copy span {
+      color: var(--ink);
+      font-size: 18px;
+      font-weight: 300;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -.01em;
+    }
+
+    .play {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(180deg, var(--lava-1), var(--lava-2));
+      box-shadow: 0 0 12px rgba(255, 90, 20, .55);
+    }
+
+    .play::before {
+      content: "";
+      width: 0;
+      height: 0;
+      margin-left: 2px;
+      border-left: 9px solid #1a0d05;
+      border-top: 5px solid transparent;
+      border-bottom: 5px solid transparent;
+    }
+
+    .panel-fragment {
+      width: 256px;
+      min-height: 204px;
+      padding: 15px 18px 17px;
+      border: 1px solid var(--line);
+      border-radius: 21px;
+      background: linear-gradient(158deg, rgba(48, 29, 18, .92), rgba(20, 12, 8, .9));
+      box-shadow: 0 22px 48px -28px rgba(0, 0, 0, .95), inset 0 1px rgba(255, 225, 170, .12);
+    }
+
+    .panel-label {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      color: rgba(240, 200, 150, .44);
+      font-size: 10px;
+      font-weight: 560;
+      letter-spacing: .1em;
+    }
+
+    .panel-label::after {
+      content: "";
+      width: 3px;
+      height: 3px;
+      border-radius: 50%;
+      background: rgba(255, 150, 60, .52);
+    }
+
+    .panel-label span {
+      color: rgba(255, 190, 130, .72);
+      letter-spacing: 0;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .focus-ring {
+      position: relative;
+      width: 118px;
+      height: 118px;
+      margin: 6px auto 0;
+    }
+
+    .ring-content {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      white-space: nowrap;
+    }
+
+    /*
+      Recommended layout: three coordinate-locked layers.
+      No item participates in flow layout, so changing the timer typography
+      cannot move the title or goal by even a sub-pixel.
+    */
+    .ring-content.stable-layout {
+      display: block;
+    }
+
+    .stable-layout .active-project,
+    .stable-layout .goal-line {
+      position: absolute;
+      right: 0;
+      left: 0;
+      height: 13px;
+      line-height: 13px;
+      text-align: center;
+      transform: none;
+    }
+
+    .stable-layout .active-project {
+      top: 30px;
+    }
+
+    .stable-layout .goal-line {
+      top: 75px;
+    }
+
+    .stable-layout .large-adaptive {
+      position: absolute;
+      top: 43px;
+      right: 0;
+      left: 0;
+      width: 100%;
+      height: 32px;
+      align-items: center;
+      line-height: 1;
+      transform: none;
+    }
+
+    .stable-layout .large-adaptive .primary-time,
+    .stable-layout .large-adaptive .seconds-time {
+      line-height: 1;
+    }
+
+    .active-project {
+      color: rgba(255, 180, 110, .86);
+      font-size: 10px;
+      font-weight: 650;
+    }
+
+    .large-current {
+      color: var(--ink);
+      font-size: 25px;
+      font-weight: 300;
+      letter-spacing: -.02em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .large-adaptive {
+      display: inline-flex;
+      align-items: baseline;
+      justify-content: center;
+      color: var(--ink);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .large-adaptive .primary-time {
+      font-size: 24px;
+      font-weight: 300;
+      letter-spacing: -.025em;
+    }
+
+    .large-adaptive .seconds-time {
+      margin-left: 1px;
+      color: rgba(255, 226, 190, .68);
+      font-size: 11px;
+      font-weight: 520;
+      letter-spacing: -.02em;
+    }
+
+    .goal-line {
+      color: rgba(255, 160, 90, .82);
+      font-size: 9.5px;
+      font-weight: 650;
+    }
+
+    .note {
+      min-height: 30px;
+      margin: 10px auto 0;
+      color: rgba(244, 222, 188, .42);
+      font-size: 9.5px;
+      line-height: 1.5;
+      text-align: center;
+    }
+
+    @media (max-width: 820px) {
+      .intro, .case { grid-template-columns: 1fr; }
+      .legend { width: 100%; }
+      .comparison { grid-template-columns: 1fr; }
+      .case { gap: 19px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="intro">
+      <div>
+        <p class="eyebrow">LavaTimer · Typography Stress Test</p>
+        <h1>不扩大圆环，重新分配数字的视觉权重</h1>
+        <p class="summary">主读数保持醒目，把语义明确、但优先级较低的「%」和「秒」恒定为辅助信息。窗口尺寸与圆环尺寸均不变，一小时前后共用同一字号体系。</p>
+      </div>
+      <div class="legend" aria-label="对比图例">
+        <span>当前样式</span>
+        <span class="recommended">建议样式</span>
+      </div>
+    </header>
+
+    <section class="case" aria-labelledby="capsule-title">
+      <div>
+        <div class="case-number">CASE 01</div>
+        <h2 id="capsule-title">悬浮态 · 100%</h2>
+        <p class="case-copy">数字仍居中；百分号降到 6px，三位数字收紧字距。圆环内留出稳定呼吸区。</p>
+        <div class="states" data-controls="percent">
+          <button class="state-button" type="button" data-value="86">86%</button>
+          <button class="state-button" type="button" data-value="99">99%</button>
+          <button class="state-button active" type="button" data-value="100">100%</button>
+        </div>
+      </div>
+
+      <div class="comparison">
+        <article class="sample">
+          <div class="sample-head"><span>BEFORE</span><span>整体字符串</span></div>
+          <div class="stage">
+            <div class="capsule">
+              <div class="mini-ring">
+                <svg viewBox="0 0 38 38" aria-hidden="true">
+                  <defs><linearGradient id="mini-current" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffcf7a"/><stop offset=".45" stop-color="#ff7a2d"/><stop offset="1" stop-color="#d0330a"/></linearGradient></defs>
+                  <circle cx="19" cy="19" r="15" fill="none" stroke="rgba(255,200,140,.12)" stroke-width="4"/>
+                  <circle cx="19" cy="19" r="15" fill="none" stroke="url(#mini-current)" stroke-width="4" stroke-linecap="round" stroke-dasharray="94.2" stroke-dashoffset="0" transform="rotate(-90 19 19)"/>
+                </svg>
+                <span class="mini-value current" data-percent-current>100%</span>
+              </div>
+              <div class="capsule-copy"><small>写作</small><span>25:00</span></div>
+              <span class="play" aria-hidden="true"></span>
+            </div>
+          </div>
+        </article>
+
+        <article class="sample is-recommended">
+          <div class="sample-head"><strong>RECOMMENDED</strong><span>数字 / 符号分级</span></div>
+          <div class="stage">
+            <div class="capsule">
+              <div class="mini-ring">
+                <svg viewBox="0 0 38 38" aria-hidden="true">
+                  <defs><linearGradient id="mini-new" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffcf7a"/><stop offset=".45" stop-color="#ff7a2d"/><stop offset="1" stop-color="#d0330a"/></linearGradient></defs>
+                  <circle cx="19" cy="19" r="15" fill="none" stroke="rgba(255,200,140,.12)" stroke-width="4"/>
+                  <circle cx="19" cy="19" r="15" fill="none" stroke="url(#mini-new)" stroke-width="4" stroke-linecap="round" stroke-dasharray="94.2" stroke-dashoffset="0" transform="rotate(-90 19 19)"/>
+                </svg>
+                <span class="mini-value adaptive"><span class="pct-number" data-percent-number>100</span><span class="pct-mark">%</span></span>
+              </div>
+              <div class="capsule-copy"><small>写作</small><span>25:00</span></div>
+              <span class="play" aria-hidden="true"></span>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="case" aria-labelledby="panel-title">
+      <div>
+        <div class="case-number">CASE 02</div>
+        <h2 id="panel-title">展开态 · 超过一小时</h2>
+        <p class="case-copy">分钟或“小时:分钟”始终使用 24px；秒数始终使用 11px 尾标。一小时前后只改变内容，不改变字号体系。</p>
+        <div class="states" data-controls="time">
+          <button class="state-button" type="button" data-value="59:59">59:59</button>
+          <button class="state-button active" type="button" data-value="1:23:45">1:23:45</button>
+          <button class="state-button" type="button" data-value="12:34:56">12:34:56</button>
+        </div>
+      </div>
+
+      <div class="comparison">
+        <article class="sample">
+          <div class="sample-head"><span>BEFORE</span><span>同字号单行</span></div>
+          <div class="stage">
+            <div class="panel-fragment">
+              <div class="panel-label">近 7 天专注 <span>6h 20m</span></div>
+              <div class="focus-ring">
+                <svg viewBox="0 0 118 118" aria-hidden="true">
+                  <defs><linearGradient id="large-current-ring" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffcf7a"/><stop offset=".45" stop-color="#ff7a2d"/><stop offset="1" stop-color="#d0330a"/></linearGradient></defs>
+                  <circle cx="59" cy="59" r="49" fill="none" stroke="rgba(255,200,140,.1)" stroke-width="10"/>
+                  <circle cx="59" cy="59" r="49" fill="none" stroke="url(#large-current-ring)" stroke-width="10" stroke-linecap="round" stroke-dasharray="307.8" stroke-dashoffset="54" transform="rotate(-90 59 59)" style="filter:drop-shadow(0 0 5px rgba(255,90,20,.72))"/>
+                </svg>
+                <div class="ring-content">
+                  <span class="active-project">写作</span>
+                  <span class="large-current" data-time-current>1:23:45</span>
+                  <span class="goal-line">70% · 2h</span>
+                </div>
+              </div>
+              <div class="note">所有位数使用同一视觉权重</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="sample is-recommended">
+          <div class="sample-head"><strong>RECOMMENDED</strong><span>统一层级 · 秒数恒为尾标</span></div>
+          <div class="stage">
+            <div class="panel-fragment">
+              <div class="panel-label">近 7 天专注 <span>6h 20m</span></div>
+              <div class="focus-ring">
+                <svg viewBox="0 0 118 118" aria-hidden="true">
+                  <defs><linearGradient id="large-new-ring" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffcf7a"/><stop offset=".45" stop-color="#ff7a2d"/><stop offset="1" stop-color="#d0330a"/></linearGradient></defs>
+                  <circle cx="59" cy="59" r="49" fill="none" stroke="rgba(255,200,140,.1)" stroke-width="10"/>
+                  <circle cx="59" cy="59" r="49" fill="none" stroke="url(#large-new-ring)" stroke-width="10" stroke-linecap="round" stroke-dasharray="307.8" stroke-dashoffset="54" transform="rotate(-90 59 59)" style="filter:drop-shadow(0 0 5px rgba(255,90,20,.72))"/>
+                </svg>
+                <div class="ring-content stable-layout">
+                  <span class="active-project">写作</span>
+                  <span class="large-adaptive" data-time-adaptive><span class="primary-time">1:23</span><span class="seconds-time">:45</span></span>
+                  <span class="goal-line">70% · 2h</span>
+                </div>
+              </div>
+              <div class="note">主时间恒定 24px · 秒数恒定 11px · 三层坐标锁定</div>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const percentButtons = document.querySelectorAll('[data-controls="percent"] .state-button');
+    const percentCurrent = document.querySelector('[data-percent-current]');
+    const percentNumber = document.querySelector('[data-percent-number]');
+
+    percentButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        percentButtons.forEach((item) => item.classList.remove('active'));
+        button.classList.add('active');
+        percentCurrent.textContent = `${button.dataset.value}%`;
+        percentNumber.textContent = button.dataset.value;
+      });
+    });
+
+    const timeButtons = document.querySelectorAll('[data-controls="time"] .state-button');
+    const timeCurrent = document.querySelector('[data-time-current]');
+    const timeAdaptive = document.querySelector('[data-time-adaptive]');
+
+    timeButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        timeButtons.forEach((item) => item.classList.remove('active'));
+        button.classList.add('active');
+
+        const value = button.dataset.value;
+        const pieces = value.split(':');
+        timeCurrent.textContent = value;
+
+        if (pieces.length === 2) {
+          timeAdaptive.querySelector('.primary-time').textContent = pieces[0];
+          timeAdaptive.querySelector('.seconds-time').textContent = `:${pieces[1]}`;
+          return;
+        }
+
+        timeAdaptive.querySelector('.primary-time').textContent = `${pieces[0]}:${pieces[1]}`;
+        timeAdaptive.querySelector('.seconds-time').textContent = `:${pieces[2]}`;
+      });
+    });
+  </script>
+</body>
+</html>
