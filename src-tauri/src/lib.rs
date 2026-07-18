@@ -1,7 +1,15 @@
 // 熔岩计时器 — Tauri v2 菜单栏壳
 // 覆盖 src-tauri/src/lib.rs
 
-use std::sync::Mutex;
+use std::sync::{
+    atomic::{AtomicU64, Ordering},
+    Mutex,
+};
+#[cfg(target_os = "macos")]
+use std::{
+    ptr::NonNull,
+    time::{SystemTime, UNIX_EPOCH},
+};
 use tauri::{
     image::Image,
     menu::{Menu, MenuItem},
@@ -11,6 +19,90 @@ use tauri::{
 use tauri_plugin_positioner::{Position, WindowExt};
 
 const EDGE_SNAP_THRESHOLD: f64 = 28.0;
+
+#[derive(Default)]
+struct ScreenInactiveState {
+    last_at: AtomicU64,
+}
+
+#[cfg(target_os = "macos")]
+fn record_screen_inactive(app: &tauri::AppHandle) {
+    let stopped_at = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_millis() as u64)
+        .unwrap_or(0);
+    app.state::<ScreenInactiveState>()
+        .last_at
+        .store(stopped_at, Ordering::SeqCst);
+    let _ = app.emit("lava://screen-off", stopped_at);
+}
+
+#[tauri::command]
+fn latest_screen_inactive_at(state: tauri::State<'_, ScreenInactiveState>) -> Option<u64> {
+    match state.last_at.load(Ordering::SeqCst) {
+        0 => None,
+        timestamp => Some(timestamp),
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn install_screen_off_observers(app: tauri::AppHandle) {
+    use block2::RcBlock;
+    use objc2_app_kit::{
+        NSWorkspace, NSWorkspaceScreensDidSleepNotification,
+        NSWorkspaceSessionDidResignActiveNotification, NSWorkspaceWillSleepNotification,
+    };
+    use objc2_foundation::{ns_string, NSDistributedNotificationCenter, NSNotification};
+
+    let center = NSWorkspace::sharedWorkspace().notificationCenter();
+
+    // 这些是 AppKit 提供、进程生命周期内稳定的通知名常量。
+    let notification_names = unsafe {
+        [
+            NSWorkspaceScreensDidSleepNotification,
+            NSWorkspaceSessionDidResignActiveNotification,
+            NSWorkspaceWillSleepNotification,
+        ]
+    };
+
+    for notification_name in notification_names {
+        let app = app.clone();
+        let block: RcBlock<dyn Fn(NonNull<NSNotification>)> = RcBlock::new(move |_| {
+            record_screen_inactive(&app);
+        });
+
+        // NSWorkspace 的通知中心会持有返回的观察者，生命周期与应用一致。
+        unsafe {
+            center.addObserverForName_object_queue_usingBlock(
+                Some(notification_name),
+                None,
+                None,
+                &block,
+            );
+        }
+    }
+
+    // 屏保启动早于显示器休眠；macOS 通过分布式通知发布这个状态变化。
+    let screensaver_center = NSDistributedNotificationCenter::defaultCenter();
+    for notification_name in [
+        ns_string!("com.apple.screensaver.didstart"),
+        ns_string!("com.apple.screenIsLocked"),
+    ] {
+        let app = app.clone();
+        let block: RcBlock<dyn Fn(NonNull<NSNotification>)> = RcBlock::new(move |_| {
+            record_screen_inactive(&app);
+        });
+
+        unsafe {
+            screensaver_center.addObserverForName_object_queue_usingBlock(
+                Some(notification_name),
+                None,
+                None,
+                &block,
+            );
+        }
+    }
+}
 
 #[derive(Default)]
 struct WindowLayoutState {
@@ -246,17 +338,22 @@ fn snap_main_window_to_edge(app: tauri::AppHandle) -> Result<(), String> {
 pub fn run() {
     tauri::Builder::default()
         .manage(WindowLayoutState::default())
+        .manage(ScreenInactiveState::default())
         .plugin(tauri_plugin_positioner::init())
         .invoke_handler(tauri::generate_handler![
             set_tray_title,
             set_main_window_size,
             main_window_expands_upward,
-            snap_main_window_to_edge
+            snap_main_window_to_edge,
+            latest_screen_inactive_at
         ])
         .setup(|app| {
             // 菜单栏 App:不出现在 Dock
             #[cfg(target_os = "macos")]
-            app.set_activation_policy(ActivationPolicy::Accessory);
+            {
+                app.set_activation_policy(ActivationPolicy::Accessory);
+                install_screen_off_observers(app.handle().clone());
+            }
 
             // 右键菜单(左键弹面板,右键退出)
             let quit = MenuItem::with_id(app, "quit", "退出 LavaTimer", true, None::<&str>)?;

@@ -40,6 +40,15 @@
   .capsule-pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:1px;padding-left:1px;color:#ffb765;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
   .capsule-pct__number{font-size:9.5px;line-height:1;letter-spacing:-.035em}
   .capsule-pct__mark{margin-top:1px;font-size:6px;line-height:1;opacity:.82}
+  .overview-grid{display:grid;grid-template-columns:60px repeat(7,minmax(0,1fr)) 31px;gap:4px;align-items:center}
+  .overview-day{color:rgba(240,200,150,.3);font-size:7.5px;text-align:center}
+  .overview-project-name{overflow:hidden;color:rgba(245,225,195,.65);font-size:8.5px;text-overflow:ellipsis;white-space:nowrap;transition:opacity 150ms ease,color 150ms ease}
+  .overview-cell{display:block;aspect-ratio:1;min-height:19px;border:1px solid rgba(255,203,143,.045);border-radius:5px;transition:opacity 150ms ease,transform 150ms ease,border-color 150ms ease}
+  .overview-cell:hover{border-color:rgba(255,186,112,.46);transform:scale(1.1)}
+  .overview-total{color:rgba(255,220,178,.64);font-size:8px;font-weight:650;text-align:right;font-variant-numeric:tabular-nums;transition:opacity 150ms ease,color 150ms ease}
+  .overview-footer-grid{display:grid;grid-template-columns:60px repeat(7,minmax(0,1fr)) 31px;gap:4px;margin-top:7px;padding-top:7px;border-top:1px solid rgba(255,190,120,.07)}
+  .overview-footer-grid span{color:rgba(240,200,150,.28);font-size:7px;text-align:center;font-variant-numeric:tabular-nums}
+  .overview-footer-grid span:first-child{text-align:left}.overview-footer-grid span:last-child{text-align:right}
   a{color:#ffb765;text-decoration:none}
   a:hover{color:#ffd9a8}
   @keyframes lavaFlow{0%{background-position:0% 50%}100%{background-position:200% 50%}}
@@ -55,10 +64,10 @@
   <sc-if value="{{ viewPanel }}" hint-placeholder-val="{{ true }}">
     <div class="lava-scroll-surface" data-lava-drag-surface="" style="width:300px;padding:22px;border-radius:24px;display:flex;flex-direction:column;gap:18px;background:linear-gradient(158deg,rgba(48,29,18,.86),rgba(20,12,8,.82));backdrop-filter:blur(28px) saturate(150%);-webkit-backdrop-filter:blur(28px) saturate(150%);border:1px solid rgba(255,180,90,.17);box-shadow:0 18px 36px -30px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,225,170,.15)">
 
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
-        <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <sc-for list="{{ projects }}" as="p" hint-placeholder-count="3"><button style="{{ p.style }}" onClick="{{ p.onClick }}">{{ p.name }}</button></sc-for>
-        </div>
+      <div style="display:flex;align-items:flex-start;justify-content:flex-end;gap:6px">
+        <button onClick="{{ toOverview }}" title="查看近 7 日总览" aria-label="查看近 7 日总览" style="width:26px;height:26px;padding:0;border-radius:8px;cursor:pointer;border:1px solid rgba(255,180,90,.22);background:rgba(255,120,45,.07);color:#ffb765;display:flex;align-items:center;justify-content:center">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true"><rect x="1" y="7" width="2.4" height="5" rx="1.2" fill="currentColor" opacity=".72"/><rect x="5.3" y="4" width="2.4" height="8" rx="1.2" fill="currentColor" opacity=".86"/><rect x="9.6" y="1" width="2.4" height="11" rx="1.2" fill="currentColor"/></svg>
+        </button>
         <div style="display:flex;gap:6px;flex-shrink:0">
           <button onClick="{{ toCapsule }}" title="收起为胶囊" style="width:26px;height:26px;border-radius:8px;cursor:pointer;border:1px solid rgba(255,200,140,.14);background:rgba(255,220,170,.04);color:rgba(255,200,150,.75);display:flex;align-items:center;justify-content:center;padding:0">
             <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x="1" y="4" width="11" height="5" rx="2.5" stroke="currentColor" stroke-width="1.4"/></svg>
@@ -136,6 +145,48 @@
         </button>
         <button onClick="{{ reset }}" title="重置本项目" aria-label="重置本项目" style="width:50px;height:50px;border-radius:16px;cursor:pointer;border:1px solid rgba(255,180,90,.22);background:rgba(255,220,170,.05);color:rgba(255,200,150,.8);font-size:19px">↺</button>
       </div>
+    </div>
+  </sc-if>
+
+  <!-- ============ 近 7 日总览态 · B 方案 ============ -->
+  <sc-if value="{{ viewOverview }}" hint-placeholder-val="{{ false }}">
+    <div class="lava-scroll-surface" data-lava-drag-surface="" style="width:300px;min-height:704px;padding:22px;border-radius:24px;display:flex;flex-direction:column;background:linear-gradient(158deg,rgba(48,29,18,.86),rgba(20,12,8,.82));backdrop-filter:blur(28px) saturate(150%);-webkit-backdrop-filter:blur(28px) saturate(150%);border:1px solid rgba(255,180,90,.17);box-shadow:0 18px 36px -30px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,225,170,.15)">
+      <div style="display:grid;grid-template-columns:34px 1fr;align-items:center;gap:9px">
+        <button onClick="{{ toPanel }}" title="返回计时" aria-label="返回计时" style="width:34px;height:34px;padding:0;border:1px solid rgba(255,170,84,.24);border-radius:10px;background:rgba(255,130,48,.055);color:#ffcf99;cursor:pointer;font-size:17px;display:grid;place-items:center">←</button>
+        <div><strong style="display:block;color:#f8e8d0;font-size:13.5px;font-weight:650">总览 · 近 7 天</strong><span style="display:block;margin-top:2px;color:rgba(240,200,150,.4);font-size:9px">{{ overviewDateRange }}</span></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr auto;align-items:end;gap:10px;margin-top:20px;padding-bottom:15px;border-bottom:1px solid rgba(255,190,120,.1)">
+        <div><small style="display:block;margin-bottom:5px;color:rgba(240,200,150,.48);font-size:9.5px;letter-spacing:.08em">总专注时长</small><strong style="color:#fff2dd;font-size:28px;font-weight:310;letter-spacing:-.04em;font-variant-numeric:tabular-nums">{{ overviewTotalStr }}</strong><em style="margin-left:7px;padding:3px 5px;border:1px solid rgba(255,183,101,.18);border-radius:6px;color:#ffb765;font-size:7.5px;font-style:normal;font-weight:680;letter-spacing:.04em;vertical-align:6px">近 7 日</em></div>
+        <div style="display:grid;grid-template-columns:repeat(2,auto);gap:5px 12px;padding-bottom:3px">
+          <span style="color:rgba(240,200,150,.42);font-size:8.5px;text-align:right">日均<b style="display:block;margin-top:2px;color:rgba(255,217,170,.68);font-size:9.5px;font-weight:650">{{ overviewAverageStr }}</b></span>
+          <span style="color:rgba(240,200,150,.42);font-size:8.5px;text-align:right">活跃<b style="display:block;margin-top:2px;color:rgba(255,217,170,.68);font-size:9.5px;font-weight:650">{{ overviewActiveDays }}</b></span>
+          <span style="color:rgba(240,200,150,.42);font-size:8.5px;text-align:right">项目<b style="display:block;margin-top:2px;color:rgba(255,217,170,.68);font-size:9.5px;font-weight:650">{{ overviewProjectCount }}</b></span>
+          <span style="color:rgba(240,200,150,.42);font-size:8.5px;text-align:right">最高日<b style="display:block;margin-top:2px;color:rgba(255,217,170,.68);font-size:9.5px;font-weight:650">{{ overviewMaxDayStr }}</b></span>
+        </div>
+      </div>
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:16px 0 9px"><strong style="color:rgba(245,225,195,.82);font-size:10.5px;font-weight:650">项目排行</strong><span style="color:rgba(240,200,150,.34);font-size:8.5px">占近 7 日总时长</span></div>
+      <div style="display:grid;gap:7px">
+        <sc-for list="{{ overviewProjects }}" as="p" hint-placeholder-count="5">
+          <button onClick="{{ p.onFocus }}" aria-label="{{ p.focusLabel }}" style="{{ p.rankRowStyle }}">
+            <span style="{{ p.rankNumberStyle }}">{{ p.rank }}</span>
+            <span style="min-width:0"><span style="display:flex;align-items:baseline;justify-content:space-between;gap:7px;margin-bottom:5px"><strong style="overflow:hidden;color:rgba(245,225,195,.78);font-size:10.5px;font-weight:590;text-overflow:ellipsis;white-space:nowrap">{{ p.name }}</strong><span style="color:rgba(240,200,150,.36);font-size:8px">{{ p.shareStr }}</span></span><span style="display:block;height:5px;overflow:hidden;border-radius:3px;background:rgba(255,200,140,.1)"><i style="{{ p.rankBarStyle }}"></i></span></span>
+            <span style="color:rgba(255,220,178,.74);font-size:9.5px;font-weight:660;font-variant-numeric:tabular-nums">{{ p.totalStr }}</span>
+          </button>
+        </sc-for>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr auto;gap:6px;margin-top:10px;padding:8px 9px;border-top:1px solid rgba(255,190,120,.08);border-bottom:1px solid rgba(255,190,120,.08)"><span style="color:rgba(240,200,150,.4);font-size:8.5px">{{ overviewFocusCaption }}</span><strong style="color:#ffca8c;font-size:9px;font-weight:650">{{ overviewFocusLabel }}</strong></div>
+      <div style="margin-top:2px;padding-top:12px;border-top:1px solid rgba(255,190,120,.09)">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:0 0 9px"><strong style="color:rgba(245,225,195,.82);font-size:10.5px;font-weight:650">项目 × 日期</strong><span style="color:rgba(240,200,150,.34);font-size:8.5px">颜色越亮，投入越多</span></div>
+        <div class="overview-grid">
+          <span></span><sc-for list="{{ overviewDays }}" as="d" hint-placeholder-count="7"><span style="{{ d.style }}">{{ d.label }}</span></sc-for><span class="overview-day">合计</span>
+          <sc-for list="{{ overviewProjects }}" as="p" hint-placeholder-count="5">
+            <span class="overview-project-name" style="{{ p.heatNameStyle }}">{{ p.name }}</span><sc-for list="{{ p.cells }}" as="c" hint-placeholder-count="7"><span class="overview-cell" title="{{ c.title }}" style="{{ c.style }}"></span></sc-for><span class="overview-total" style="{{ p.heatTotalStyle }}">{{ p.totalStr }}</span>
+          </sc-for>
+        </div>
+        <div class="overview-footer-grid"><span>每日合计</span><sc-for list="{{ overviewDayTotals }}" as="d" hint-placeholder-count="7"><span>{{ d }}</span></sc-for><span>{{ overviewTotalCompactStr }}</span></div>
+        <p style="margin:10px 0 0;color:rgba(240,200,150,.28);font-size:8px;line-height:1.5">点击上方项目排行，查看该项目在 7 天中的分布。</p>
+      </div>
+      <span style="margin-top:auto;padding-top:14px;color:rgba(240,200,150,.24);font-size:7.5px;line-height:1.5">过去 6 天 + 今天 · 历史旧数据无法拆分时计入「历史未分类」</span>
     </div>
   </sc-if>
 
@@ -323,16 +374,24 @@ class Component extends DCLogic {
     return {
       view: (this.props && this.props.startInCapsule) ? 'capsule' : 'panel',
       projects: [
-        { name: '深度工作', goal: 2 * 3600, sec: 0 },
-        { name: '论文写作', goal: 1.5 * 3600, sec: 0 },
-        { name: '算法刷题', goal: 1 * 3600, sec: 0 },
+        { id: 'project-deep-work', name: '深度工作', goal: 2 * 3600, sec: 0 },
+        { id: 'project-writing', name: '论文写作', goal: 1.5 * 3600, sec: 0 },
+        { id: 'project-algorithms', name: '算法刷题', goal: 1 * 3600, sec: 0 },
       ],
       proj: 0,
       dateKey: this.todayKey(),
       runStart: null,
       history: {},
+      projectHistory: {},
+      projectLabels: {},
+      overviewProj: null,
       expandUpward: false,
     };
+  }
+
+  projectId() {
+    if (window.crypto && typeof window.crypto.randomUUID === 'function') return 'project-' + window.crypto.randomUUID();
+    return 'project-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
   }
 
   todayKey(d) {
@@ -370,17 +429,32 @@ class Component extends DCLogic {
         const saved = this.migrate(JSON.parse(raw));
         s = { ...s, ...saved };
         if (!Array.isArray(s.projects) || s.projects.length === 0) s.projects = this.defaults().projects;
-        s.projects = s.projects.slice(0, 6).map((p) => ({
-          name: p && typeof p.name === 'string' && p.name.trim() ? p.name.trim().slice(0, 10) : '未命名',
-          goal: p && Number.isFinite(p.goal) ? Math.max(1800, Math.min(12 * 3600, Math.round(p.goal / 1800) * 1800)) : 2 * 3600,
-          sec: p && Number.isFinite(p.sec) ? Math.max(0, Math.floor(p.sec)) : 0,
-        }));
+        const usedProjectIds = new Set();
+        s.projects = s.projects.slice(0, 6).map((p) => {
+          let id = p && typeof p.id === 'string' && /^[a-zA-Z0-9_-]{1,80}$/.test(p.id) ? p.id : this.projectId();
+          while (usedProjectIds.has(id)) id = this.projectId();
+          usedProjectIds.add(id);
+          return {
+            id,
+            name: p && typeof p.name === 'string' && p.name.trim() ? p.name.trim().slice(0, 10) : '未命名',
+            goal: p && Number.isFinite(p.goal) ? Math.max(1800, Math.min(12 * 3600, Math.round(p.goal / 1800) * 1800)) : 2 * 3600,
+            sec: p && Number.isFinite(p.sec) ? Math.max(0, Math.floor(p.sec)) : 0,
+          };
+        });
         s.proj = Number.isInteger(s.proj) ? Math.max(0, Math.min(s.proj, s.projects.length - 1)) : 0;
-        s.view = ['panel', 'capsule', 'settings'].includes(s.view) ? s.view : 'panel';
+        s.view = ['panel', 'overview', 'capsule', 'settings'].includes(s.view) ? s.view : 'panel';
         s.runStart = Number.isFinite(s.runStart) && s.runStart > 0 ? Math.min(s.runStart, Date.now()) : null;
         s.history = s.history && !Array.isArray(s.history) && typeof s.history === 'object'
           ? Object.fromEntries(Object.entries(s.history).filter(([key, value]) => this.startOfDay(key) != null && Number.isFinite(value) && value >= 0).map(([key, value]) => [key, Math.floor(value)]))
           : {};
+        s.projectHistory = s.projectHistory && !Array.isArray(s.projectHistory) && typeof s.projectHistory === 'object'
+          ? Object.fromEntries(Object.entries(s.projectHistory).filter(([key, value]) => this.startOfDay(key) != null && value && !Array.isArray(value) && typeof value === 'object').map(([key, value]) => [key, Object.fromEntries(Object.entries(value).filter(([id, seconds]) => /^[a-zA-Z0-9_-]{1,80}$/.test(id) && Number.isFinite(seconds) && seconds >= 0).map(([id, seconds]) => [id, Math.floor(seconds)]))]))
+          : {};
+        s.projectLabels = s.projectLabels && !Array.isArray(s.projectLabels) && typeof s.projectLabels === 'object'
+          ? Object.fromEntries(Object.entries(s.projectLabels).filter(([id, name]) => /^[a-zA-Z0-9_-]{1,80}$/.test(id) && typeof name === 'string' && name.trim()).map(([id, name]) => [id, name.trim().slice(0, 10)]))
+          : {};
+        s.projects.forEach((project) => { s.projectLabels[project.id] = project.name; });
+        s.overviewProj = null;
         if (this.startOfDay(s.dateKey) == null) s.dateKey = this.todayKey();
         // 跨天:把旧日各项目秒数折入历史,清零
         const today = this.todayKey();
@@ -393,27 +467,32 @@ class Component extends DCLogic {
   }
 
   save() {
-    const { view, projects, proj, dateKey, runStart, history } = this.state;
-    try { localStorage.setItem(this.STORE_KEY, JSON.stringify({ view, projects, proj, dateKey, runStart, history })); } catch (e) {}
+    const { view, projects, proj, dateKey, runStart, history, projectHistory, projectLabels } = this.state;
+    try { localStorage.setItem(this.STORE_KEY, JSON.stringify({ view, projects, proj, dateKey, runStart, history, projectHistory, projectLabels })); } catch (e) {}
   }
 
-  update(patch) { this.setState(patch, () => this.save()); }
+  update(patch, callback) {
+    this.setState(patch, () => {
+      this.save();
+      if (callback) callback();
+    });
+  }
 
   componentDidMount() {
     if (isTauriRuntime()) document.body.style.background = 'transparent';
     installWindowDragBridge();
     this.syncWindowToContent();
-    this._t = setInterval(() => {
-      this.rolloverCheck();
-      if (this.state.runStart) this.forceUpdate();
-      this.pushTrayTitle();
-      this.syncWindowToContent();
-    }, 1000);
-    this._vis = () => this.forceUpdate();
+    this._tick = () => this.runTimerTick();
+    this._t = setInterval(this._tick, 1000);
+    this._vis = () => {
+      this.runTimerTick();
+      this.forceUpdate();
+    };
     document.addEventListener('visibilitychange', this._vis);
     this._windowMoved = () => this.refreshExpansionDirection();
     window.addEventListener('lava-window-moved', this._windowMoved);
     this._unlistenExpansionDirection = null;
+    this._unlistenScreenOff = null;
     listenTauriEvent('lava://expansion-direction', (expandsUpward) => {
       const next = !!expandsUpward;
       if (this.state.view === 'capsule' && next !== this.state.expandUpward) {
@@ -422,6 +501,12 @@ class Component extends DCLogic {
     }).then((unlisten) => {
       this._unlistenExpansionDirection = unlisten;
     }).catch(() => {});
+    listenTauriEvent('lava://screen-off', (stoppedAt) => {
+      this.handleScreenInactive(stoppedAt);
+    }).then((unlisten) => {
+      this._unlistenScreenOff = unlisten;
+    }).catch(() => {});
+    this.runTimerTick();
     this._directionPoll = setInterval(() => {
       if (this.state.view === 'capsule') this.refreshExpansionDirection();
     }, 120);
@@ -431,6 +516,7 @@ class Component extends DCLogic {
     document.removeEventListener('visibilitychange', this._vis);
     window.removeEventListener('lava-window-moved', this._windowMoved);
     if (this._unlistenExpansionDirection) this._unlistenExpansionDirection();
+    if (this._unlistenScreenOff) this._unlistenScreenOff();
     clearInterval(this._directionPoll);
     if (this._sizeRaf) cancelAnimationFrame(this._sizeRaf);
   }
@@ -498,10 +584,19 @@ class Component extends DCLogic {
     const running = !!s.runStart;
     const projects = s.projects.map((p) => ({ ...p, sec: 0 }));
     const history = { ...s.history };
+    const projectHistory = { ...(s.projectHistory || {}) };
+    const projectLabels = { ...(s.projectLabels || {}) };
     const completedTotal = s.projects.reduce((sum, project) => sum + Math.max(0, project.sec || 0), 0);
 
     if (s.dateKey !== today && completedTotal > 0) {
       history[s.dateKey] = (history[s.dateKey] || 0) + completedTotal;
+      const dayProjects = { ...(projectHistory[s.dateKey] || {}) };
+      s.projects.forEach((project) => {
+        const seconds = Math.max(0, Math.floor(project.sec || 0));
+        if (seconds > 0) dayProjects[project.id] = (dayProjects[project.id] || 0) + seconds;
+        projectLabels[project.id] = project.name;
+      });
+      projectHistory[s.dateKey] = dayProjects;
     }
 
     if (running && projects[s.proj]) {
@@ -516,7 +611,14 @@ class Component extends DCLogic {
         const segmentEnd = Math.min(now, nextDay);
         const seconds = Math.max(0, Math.floor((segmentEnd - cursor) / 1000));
         if (key === today) todaySeconds += seconds;
-        else history[key] = (history[key] || 0) + seconds;
+        else {
+          history[key] = (history[key] || 0) + seconds;
+          const projectId = projects[s.proj].id;
+          const dayProjects = { ...(projectHistory[key] || {}) };
+          dayProjects[projectId] = (dayProjects[projectId] || 0) + seconds;
+          projectHistory[key] = dayProjects;
+          projectLabels[projectId] = projects[s.proj].name;
+        }
         cursor = segmentEnd;
       }
 
@@ -527,6 +629,8 @@ class Component extends DCLogic {
       ...s,
       projects,
       history,
+      projectHistory,
+      projectLabels,
       dateKey: today,
       runStart: running ? now : null,
     };
@@ -536,6 +640,57 @@ class Component extends DCLogic {
     const today = this.todayKey();
     if (this.state.dateKey === today) return;
     this.update(this.rolloverState(this.state, today));
+  }
+
+  handleScreenInactive(stoppedAtValue) {
+    const stoppedAt = Number(stoppedAtValue);
+    if (!Number.isFinite(stoppedAt) || stoppedAt <= 0) return;
+    if (this._lastHandledScreenInactiveAt && stoppedAt <= this._lastHandledScreenInactiveAt) return;
+    this._lastHandledScreenInactiveAt = stoppedAt;
+    this.pauseAt(stoppedAt);
+  }
+
+  runTimerTick() {
+    if (this._nativeScreenCheckPending) return;
+    this._nativeScreenCheckPending = true;
+    tauriInvoke('latest_screen_inactive_at')
+      .then((stoppedAt) => this.handleScreenInactive(stoppedAt))
+      .catch(() => {})
+      .finally(() => {
+        this._nativeScreenCheckPending = false;
+        this.rolloverCheck();
+        if (this.state.runStart) this.forceUpdate();
+        this.pushTrayTitle();
+        this.syncWindowToContent();
+      });
+  }
+
+  // macOS 进入屏保、熄屏或休眠时，只结算到系统发出通知的时刻。
+  pauseAt(stoppedAtValue) {
+    const s = this.state;
+    if (!s.runStart) return;
+
+    const now = Date.now();
+    const eventTime = Number(stoppedAtValue);
+    if (Number.isFinite(eventTime) && eventTime < s.runStart) return;
+    const stoppedAt = Number.isFinite(eventTime)
+      ? Math.min(now, eventTime)
+      : now;
+    const stoppedDay = this.todayKey(new Date(stoppedAt));
+
+    if (s.dateKey !== stoppedDay) {
+      const settled = this.rolloverState(s, stoppedDay, stoppedAt);
+      this.update({ ...settled, runStart: null }, () => this.pushTrayTitle());
+      return;
+    }
+
+    const projects = s.projects.slice();
+    const i = s.proj;
+    if (projects[i]) {
+      const addedSeconds = Math.max(0, Math.floor((stoppedAt - s.runStart) / 1000));
+      projects[i] = { ...projects[i], sec: projects[i].sec + addedSeconds };
+    }
+    this.update({ projects, runStart: null }, () => this.pushTrayTitle());
   }
 
   // 某项目今日秒数(含正在计时的增量)
@@ -669,8 +824,9 @@ class Component extends DCLogic {
       goalIncLabel: '增加' + p.name + '的每日目标',
       onRename: (e) => {
         const projects = s.projects.slice();
-        projects[i] = { ...projects[i], name: e.target.value || '未命名' };
-        this.update({ projects });
+        const name = e.target.value || '未命名';
+        projects[i] = { ...projects[i], name };
+        this.update({ projects, projectLabels: { ...(s.projectLabels || {}), [projects[i].id]: name } });
       },
       goalInc: () => {
         const projects = s.projects.slice();
@@ -686,7 +842,7 @@ class Component extends DCLogic {
         if (!canDelete) return;
         const projects = s.projects.filter((_, j) => j !== i);
         const proj = Math.min(s.proj >= i && s.proj > 0 ? s.proj - 1 : s.proj, projects.length - 1);
-        this.update({ projects, proj, runStart: i === s.proj ? null : s.runStart });
+        this.update({ projects, proj, runStart: i === s.proj ? null : s.runStart, overviewProj: s.overviewProj === p.id ? null : s.overviewProj });
       },
       deleteStyle: canDelete
         ? { ...delBase, cursor: 'pointer', color: 'rgba(255,180,140,.8)' }
@@ -768,6 +924,100 @@ class Component extends DCLogic {
     const weekFlames = past.map((day, index) => flameOf(day.sec, day.wd, clockAngles[index], index));
     const weekTotalStr = this.hm(week.reduce((sum, day) => sum + day.sec, 0));
 
+    // 过去六天 + 今天：历史总数继续兼容，升级后的数据按稳定项目 ID 精确归属。
+    const overviewDates = [];
+    for (let daysAgo = 6; daysAgo >= 0; daysAgo -= 1) {
+      const date = new Date();
+      date.setDate(date.getDate() - daysAgo);
+      overviewDates.push(date);
+    }
+    const overviewKeys = overviewDates.map((date) => this.todayKey(date));
+    const currentProjectIndex = Object.fromEntries(s.projects.map((project, index) => [project.id, index]));
+    const overviewIds = new Set(s.projects.map((project) => project.id));
+    overviewKeys.slice(0, 6).forEach((key) => {
+      Object.keys((s.projectHistory && s.projectHistory[key]) || {}).forEach((id) => overviewIds.add(id));
+    });
+    const overviewNameOf = (id) => {
+      const currentIndex = currentProjectIndex[id];
+      if (Number.isInteger(currentIndex) && s.projects[currentIndex]) return s.projects[currentIndex].name;
+      return (s.projectLabels && s.projectLabels[id]) || '已删除项目';
+    };
+    const overviewRaw = [...overviewIds].map((id) => ({
+      id,
+      name: overviewNameOf(id),
+      values: overviewKeys.map((key, dayIndex) => {
+        if (dayIndex === 6) {
+          const currentIndex = currentProjectIndex[id];
+          return Number.isInteger(currentIndex) ? this.elapsedOf(currentIndex) : 0;
+        }
+        return Math.max(0, Math.floor((((s.projectHistory || {})[key] || {})[id]) || 0));
+      }),
+    }));
+    const legacyValues = overviewKeys.map((key, dayIndex) => {
+      if (dayIndex === 6) return 0;
+      const tracked = Object.values(((s.projectHistory || {})[key]) || {}).reduce((sum, seconds) => sum + Math.max(0, Number(seconds) || 0), 0);
+      return Math.max(0, Math.floor((s.history[key] || 0) - tracked));
+    });
+    if (legacyValues.some((seconds) => seconds > 0)) overviewRaw.push({ id: 'legacy-unassigned', name: '历史未分类', values: legacyValues, legacy: true });
+    overviewRaw.forEach((project) => { project.total = project.values.reduce((sum, seconds) => sum + seconds, 0); });
+    overviewRaw.sort((a, b) => b.total - a.total || a.name.localeCompare(b.name, 'zh-CN'));
+
+    const overviewGrandTotal = overviewRaw.reduce((sum, project) => sum + project.total, 0);
+    const overviewMaxProject = Math.max(1, ...overviewRaw.map((project) => project.total));
+    const overviewMaxCell = Math.max(1, ...overviewRaw.flatMap((project) => project.values));
+    const overviewDayTotalSeconds = Array.from({ length: 7 }, (_, dayIndex) => overviewRaw.reduce((sum, project) => sum + project.values[dayIndex], 0));
+    const overviewFocusId = typeof s.overviewProj === 'string' && overviewRaw.some((project) => project.id === s.overviewProj) ? s.overviewProj : null;
+    const overviewColors = ['#ffb347', '#e8752e', '#bd633a', '#96533d', '#71483c', '#5b4038', '#4b3934'];
+    const overviewProjects = overviewRaw.map((project, index) => {
+      const dimmed = overviewFocusId != null && overviewFocusId !== project.id;
+      const focused = overviewFocusId === project.id;
+      const color = overviewColors[index] || '#5b4038';
+      const totalStr = this.hm(project.total);
+      const shareStr = Math.round(project.total / Math.max(1, overviewGrandTotal) * 100) + '%';
+      return {
+        id: project.id,
+        name: project.name,
+        rank: index + 1,
+        totalStr,
+        shareStr,
+        focusLabel: (focused ? '取消聚焦' : '聚焦') + project.name + '，近 7 日' + totalStr,
+        onFocus: () => this.setState({ overviewProj: focused ? null : project.id }),
+        rankRowStyle: {
+          display: 'grid', gridTemplateColumns: '17px minmax(0,1fr) auto', gap: '7px', alignItems: 'center',
+          padding: focused ? '5px 7px' : '5px 0', border: 'none', borderRadius: '9px',
+          background: focused ? 'rgba(255,122,45,.06)' : 'transparent', color: 'inherit', textAlign: 'left', cursor: 'pointer',
+          opacity: dimmed ? .42 : 1,
+        },
+        rankNumberStyle: { color: index === 0 ? '#ffb765' : 'rgba(255,202,141,.32)', fontSize: '10px', fontWeight: 720 },
+        rankBarStyle: {
+          display: 'block', width: (project.total / overviewMaxProject * 100) + '%', height: '100%', borderRadius: 'inherit',
+          background: index === 0 ? 'linear-gradient(90deg,#ffcf7a,#ff7a2d,#d84a17)' : color, opacity: Math.max(.5, .92 - index * .07),
+        },
+        heatNameStyle: { opacity: dimmed ? .22 : 1, color: focused ? '#ffd09a' : 'rgba(245,225,195,.65)' },
+        heatTotalStyle: { opacity: dimmed ? .22 : 1, color: focused ? '#ffd09a' : 'rgba(255,220,178,.64)' },
+        cells: project.values.map((value, dayIndex) => ({
+          title: project.name + ' · ' + (dayIndex === 6 ? '今天' : (overviewDates[dayIndex].getMonth() + 1) + '月' + overviewDates[dayIndex].getDate() + '日') + ' · ' + this.hm(value),
+          style: {
+            background: 'rgba(255,114,37,' + (value > 0 ? (.08 + value / overviewMaxCell * .72).toFixed(2) : '.025') + ')',
+            opacity: dimmed ? .22 : 1,
+          },
+        })),
+      };
+    });
+    const overviewFocus = overviewFocusId == null ? null : overviewProjects.find((project) => project.id === overviewFocusId);
+    const overviewDays = overviewDates.map((date, index) => ({
+      label: index === 6 ? '今天' : dayNames[date.getDay()],
+      style: { color: index === 6 ? '#ffb765' : 'rgba(240,200,150,.3)', fontSize: '7.5px', fontWeight: index === 6 ? 700 : 400, textAlign: 'center' },
+    }));
+    const overviewStart = overviewDates[0], overviewEnd = overviewDates[6];
+    const overviewDateRange = (overviewStart.getMonth() + 1) + ' 月 ' + overviewStart.getDate() + ' 日 — ' + (overviewEnd.getMonth() + 1) + ' 月 ' + overviewEnd.getDate() + ' 日';
+    const compactOverviewTime = (seconds) => {
+      if (seconds <= 0) return '—';
+      if (seconds < 3600) return Math.max(1, Math.round(seconds / 60)) + 'm';
+      const hours = seconds / 3600;
+      return (hours >= 10 ? Math.round(hours) : hours.toFixed(1)) + 'h';
+    };
+
     const rem = Math.max(0, active.goal - activeElapsed);
     const remainingMinutes = Math.ceil(rem / 60);
     const rh = Math.floor(remainingMinutes / 60), rm = remainingMinutes % 60;
@@ -775,6 +1025,7 @@ class Component extends DCLogic {
 
     return {
       viewPanel: s.view === 'panel',
+      viewOverview: s.view === 'overview',
       viewCapsule: s.view === 'capsule',
       viewSettings: s.view === 'settings',
       expansionArrowStyle: {
@@ -783,6 +1034,7 @@ class Component extends DCLogic {
         transition: 'transform 160ms ease',
       },
       toPanel: () => this.update({ view: 'panel' }),
+      toOverview: () => this.update({ view: 'overview' }),
       toCapsule: () => this.update({ view: 'capsule' }),
       toSettings: () => this.update({ view: 'settings' }),
 
@@ -810,6 +1062,18 @@ class Component extends DCLogic {
       projBreakdown,
       weekFlames,
       weekTotalStr,
+      overviewDateRange,
+      overviewTotalStr: this.hm(overviewGrandTotal),
+      overviewTotalCompactStr: compactOverviewTime(overviewGrandTotal),
+      overviewAverageStr: this.hm(Math.round(overviewGrandTotal / 7)),
+      overviewActiveDays: overviewDayTotalSeconds.filter((value) => value > 0).length + ' / 7 天',
+      overviewProjectCount: overviewRaw.filter((project) => !project.legacy).length + ' 个',
+      overviewMaxDayStr: this.hm(Math.max(...overviewDayTotalSeconds, 0)),
+      overviewProjects,
+      overviewDays,
+      overviewDayTotals: overviewDayTotalSeconds.map(compactOverviewTime),
+      overviewFocusCaption: overviewFocus ? '已聚焦' : '选择项目',
+      overviewFocusLabel: overviewFocus ? overviewFocus.name + ' · ' + overviewFocus.totalStr + ' · ' + overviewFocus.shareStr : '点击排行查看 7 日分布',
 
       toggle: () => {
         if (this.state.runStart) {
@@ -830,7 +1094,8 @@ class Component extends DCLogic {
       },
       addProject: () => {
         if (this.state.projects.length >= 6) return;
-        this.update({ projects: [...this.state.projects, { name: '新项目', goal: 1 * 3600, sec: 0 }] });
+        const project = { id: this.projectId(), name: '新项目', goal: 1 * 3600, sec: 0 };
+        this.update({ projects: [...this.state.projects, project], projectLabels: { ...(this.state.projectLabels || {}), [project.id]: project.name } });
       },
     };
   }
