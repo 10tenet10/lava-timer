@@ -49,6 +49,16 @@
   .overview-footer-grid{display:grid;grid-template-columns:60px repeat(7,minmax(0,1fr)) 31px;gap:4px;margin-top:7px;padding-top:7px;border-top:1px solid rgba(255,190,120,.07)}
   .overview-footer-grid span{color:rgba(240,200,150,.28);font-size:7px;text-align:center;font-variant-numeric:tabular-nums}
   .overview-footer-grid span:first-child{text-align:left}.overview-footer-grid span:last-child{text-align:right}
+  .overview-range-switch{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;margin-top:16px;padding:2px;border:1px solid rgba(255,190,120,.08);border-radius:9px;background:rgba(8,5,4,.24)}
+  .overview-range-button{height:26px;padding:0;border:0;border-radius:7px;cursor:pointer;font-size:9px;font-weight:620}
+  .overview-trend{position:relative;height:112px}
+  .overview-trend-grid{position:absolute;inset:3px 0 18px;display:grid;grid-template-rows:repeat(3,1fr)}
+  .overview-trend-grid i{border-top:1px solid rgba(255,190,120,.06)}
+  .overview-trend svg{position:absolute;inset:0;width:100%;height:96px;overflow:visible}
+  .overview-trend-area{fill:url(#overviewTrendArea)}
+  .overview-trend-line{fill:none;stroke:url(#overviewTrendLine);stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 4px rgba(255,90,20,.42))}
+  .overview-trend-latest{fill:#ffd18c;stroke:#9e3811;stroke-width:1.4}
+  .overview-trend-axis{position:absolute;right:0;bottom:0;left:0;display:flex;justify-content:space-between;color:rgba(240,200,150,.25);font-size:7.5px;font-variant-numeric:tabular-nums}
   a{color:#ffb765;text-decoration:none}
   a:hover{color:#ffd9a8}
   @keyframes lavaFlow{0%{background-position:0% 50%}100%{background-position:200% 50%}}
@@ -148,26 +158,55 @@
     </div>
   </sc-if>
 
-  <!-- ============ 近 7 日总览态 · B 方案 ============ -->
+  <!-- ============ 历史总览态 ============ -->
   <sc-if value="{{ viewOverview }}" hint-placeholder-val="{{ false }}">
     <div class="lava-scroll-surface" data-lava-drag-surface="" style="width:300px;min-height:704px;padding:22px;border-radius:24px;display:flex;flex-direction:column;background:linear-gradient(158deg,rgba(48,29,18,.86),rgba(20,12,8,.82));backdrop-filter:blur(28px) saturate(150%);-webkit-backdrop-filter:blur(28px) saturate(150%);border:1px solid rgba(255,180,90,.17);box-shadow:0 18px 36px -30px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,225,170,.15)">
       <div style="display:grid;grid-template-columns:34px 1fr;align-items:center;gap:9px">
         <button onClick="{{ toPanel }}" title="返回计时" aria-label="返回计时" style="width:34px;height:34px;padding:0;border:1px solid rgba(255,170,84,.24);border-radius:10px;background:rgba(255,130,48,.055);color:#ffcf99;cursor:pointer;font-size:17px;display:grid;place-items:center">←</button>
-        <div><strong style="display:block;color:#f8e8d0;font-size:13.5px;font-weight:650">总览 · 近 7 天</strong><span style="display:block;margin-top:2px;color:rgba(240,200,150,.4);font-size:9px">{{ overviewDateRange }}</span></div>
+        <div><strong style="display:block;color:#f8e8d0;font-size:13.5px;font-weight:650">{{ overviewTitle }}</strong><span style="display:block;margin-top:2px;color:rgba(240,200,150,.4);font-size:9px">{{ overviewDateRange }}</span></div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr auto;align-items:end;gap:10px;margin-top:20px;padding-bottom:15px;border-bottom:1px solid rgba(255,190,120,.1)">
-        <div><small style="display:block;margin-bottom:5px;color:rgba(240,200,150,.48);font-size:9.5px;letter-spacing:.08em">总专注时长</small><strong style="color:#fff2dd;font-size:28px;font-weight:310;letter-spacing:-.04em;font-variant-numeric:tabular-nums">{{ overviewTotalStr }}</strong><em style="margin-left:7px;padding:3px 5px;border:1px solid rgba(255,183,101,.18);border-radius:6px;color:#ffb765;font-size:7.5px;font-style:normal;font-weight:680;letter-spacing:.04em;vertical-align:6px">近 7 日</em></div>
+      <div class="overview-range-switch" role="group" aria-label="统计时间范围">
+        <button class="overview-range-button" onClick="{{ setOverviewRange7 }}" aria-pressed="{{ overviewRange7Active }}" style="{{ overviewRange7Style }}">7 天</button>
+        <button class="overview-range-button" onClick="{{ setOverviewRange30 }}" aria-pressed="{{ overviewRange30Active }}" style="{{ overviewRange30Style }}">30 天</button>
+        <button class="overview-range-button" onClick="{{ setOverviewRangeAll }}" aria-pressed="{{ overviewRangeAllActive }}" style="{{ overviewRangeAllStyle }}">全部</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr auto;align-items:end;gap:10px;margin-top:17px;padding-bottom:15px;border-bottom:1px solid rgba(255,190,120,.1)">
+        <div>
+          <small style="display:block;margin-bottom:5px;color:rgba(240,200,150,.48);font-size:9.5px;letter-spacing:.08em">总专注时长</small>
+          <span style="display:flex;align-items:baseline;gap:7px"><strong style="color:#fff2dd;font-size:28px;font-weight:310;letter-spacing:-.04em;font-variant-numeric:tabular-nums">{{ overviewTotalStr }}</strong><em style="padding:3px 5px;border:1px solid rgba(255,183,101,.18);border-radius:6px;color:#ffb765;font-size:7.5px;font-style:normal;font-weight:680;letter-spacing:.04em">{{ overviewPeriodTag }}</em></span>
+          <span style="display:block;margin-top:5px;color:rgba(240,200,150,.34);font-size:8px">{{ overviewComparisonPrefix }} <b style="color:#ffb765;font-weight:650">{{ overviewComparisonValue }}</b></span>
+        </div>
         <div style="display:grid;grid-template-columns:repeat(2,auto);gap:5px 12px;padding-bottom:3px">
           <span style="color:rgba(240,200,150,.42);font-size:8.5px;text-align:right">日均<b style="display:block;margin-top:2px;color:rgba(255,217,170,.68);font-size:9.5px;font-weight:650">{{ overviewAverageStr }}</b></span>
           <span style="color:rgba(240,200,150,.42);font-size:8.5px;text-align:right">活跃<b style="display:block;margin-top:2px;color:rgba(255,217,170,.68);font-size:9.5px;font-weight:650">{{ overviewActiveDays }}</b></span>
-          <span style="color:rgba(240,200,150,.42);font-size:8.5px;text-align:right">项目<b style="display:block;margin-top:2px;color:rgba(255,217,170,.68);font-size:9.5px;font-weight:650">{{ overviewProjectCount }}</b></span>
+          <span style="color:rgba(240,200,150,.42);font-size:8.5px;text-align:right">最长连续<b style="display:block;margin-top:2px;color:rgba(255,217,170,.68);font-size:9.5px;font-weight:650">{{ overviewLongestStreak }}</b></span>
           <span style="color:rgba(240,200,150,.42);font-size:8.5px;text-align:right">最高日<b style="display:block;margin-top:2px;color:rgba(255,217,170,.68);font-size:9.5px;font-weight:650">{{ overviewMaxDayStr }}</b></span>
         </div>
       </div>
-      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:16px 0 9px"><strong style="color:rgba(245,225,195,.82);font-size:10.5px;font-weight:650">项目排行</strong><span style="color:rgba(240,200,150,.34);font-size:8.5px">占近 7 日总时长</span></div>
+
+      <div style="padding-top:15px">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:9px"><strong style="color:rgba(245,225,195,.82);font-size:10.5px;font-weight:650">专注趋势</strong><span style="overflow:hidden;color:rgba(240,200,150,.34);font-size:8.5px;text-overflow:ellipsis;white-space:nowrap">{{ overviewTrendCaption }}</span></div>
+        <div class="overview-trend" role="img" aria-label="{{ overviewTrendAriaLabel }}">
+          <div class="overview-trend-grid" aria-hidden="true"><i></i><i></i><i></i></div>
+          <svg viewBox="0 0 256 96" preserveAspectRatio="none" aria-hidden="true">
+            <defs>
+              <linearGradient id="overviewTrendLine" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#a94b24"/><stop offset=".55" stop-color="#ff7a2d"/><stop offset="1" stop-color="#ffcf7a"/></linearGradient>
+              <linearGradient id="overviewTrendArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff7a2d" stop-opacity=".22"/><stop offset="1" stop-color="#ff7a2d" stop-opacity="0"/></linearGradient>
+            </defs>
+            <path class="overview-trend-area" d="{{ overviewTrendAreaPath }}"></path>
+            <path class="overview-trend-line" d="{{ overviewTrendLinePath }}"></path>
+            <circle class="overview-trend-latest" cx="{{ overviewTrendLatestX }}" cy="{{ overviewTrendLatestY }}" r="2.7"></circle>
+          </svg>
+          <div class="overview-trend-axis"><span>{{ overviewTrendAxisStart }}</span><span>{{ overviewTrendAxisMiddle }}</span><span>今天</span></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr auto;gap:6px;margin-top:8px;padding:8px 9px;border-top:1px solid rgba(255,190,120,.08);border-bottom:1px solid rgba(255,190,120,.08)"><span style="color:rgba(240,200,150,.4);font-size:8.5px">{{ overviewInsightText }}</span><strong style="color:#ffca8c;font-size:9px;font-weight:650">{{ overviewInsightValue }}</strong></div>
+      </div>
+
+      <div style="margin-top:12px;padding-top:15px;border-top:1px solid rgba(255,190,120,.09)">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:9px"><strong style="color:rgba(245,225,195,.82);font-size:10.5px;font-weight:650">项目排行</strong><span style="color:rgba(240,200,150,.34);font-size:8.5px">{{ overviewProjectCaption }}</span></div>
       <div style="display:grid;gap:7px">
         <sc-for list="{{ overviewProjects }}" as="p" hint-placeholder-count="5">
-          <button onClick="{{ p.onFocus }}" aria-label="{{ p.focusLabel }}" style="{{ p.rankRowStyle }}">
+          <button onClick="{{ p.onFocus }}" aria-label="{{ p.focusLabel }}" aria-pressed="{{ p.focused }}" style="{{ p.rankRowStyle }}">
             <span style="{{ p.rankNumberStyle }}">{{ p.rank }}</span>
             <span style="min-width:0"><span style="display:flex;align-items:baseline;justify-content:space-between;gap:7px;margin-bottom:5px"><strong style="overflow:hidden;color:rgba(245,225,195,.78);font-size:10.5px;font-weight:590;text-overflow:ellipsis;white-space:nowrap">{{ p.name }}</strong><span style="color:rgba(240,200,150,.36);font-size:8px">{{ p.shareStr }}</span></span><span style="display:block;height:5px;overflow:hidden;border-radius:3px;background:rgba(255,200,140,.1)"><i style="{{ p.rankBarStyle }}"></i></span></span>
             <span style="color:rgba(255,220,178,.74);font-size:9.5px;font-weight:660;font-variant-numeric:tabular-nums">{{ p.totalStr }}</span>
@@ -175,18 +214,19 @@
         </sc-for>
       </div>
       <div style="display:grid;grid-template-columns:1fr auto;gap:6px;margin-top:10px;padding:8px 9px;border-top:1px solid rgba(255,190,120,.08);border-bottom:1px solid rgba(255,190,120,.08)"><span style="color:rgba(240,200,150,.4);font-size:8.5px">{{ overviewFocusCaption }}</span><strong style="color:#ffca8c;font-size:9px;font-weight:650">{{ overviewFocusLabel }}</strong></div>
-      <div style="margin-top:2px;padding-top:12px;border-top:1px solid rgba(255,190,120,.09)">
+      </div>
+
+      <div style="margin-top:12px;padding-top:15px;border-top:1px solid rgba(255,190,120,.09)">
         <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:0 0 9px"><strong style="color:rgba(245,225,195,.82);font-size:10.5px;font-weight:650">项目 × 日期</strong><span style="color:rgba(240,200,150,.34);font-size:8.5px">颜色越亮，投入越多</span></div>
         <div class="overview-grid">
           <span></span><sc-for list="{{ overviewDays }}" as="d" hint-placeholder-count="7"><span style="{{ d.style }}">{{ d.label }}</span></sc-for><span class="overview-day">合计</span>
           <sc-for list="{{ overviewProjects }}" as="p" hint-placeholder-count="5">
-            <span class="overview-project-name" style="{{ p.heatNameStyle }}">{{ p.name }}</span><sc-for list="{{ p.cells }}" as="c" hint-placeholder-count="7"><span class="overview-cell" title="{{ c.title }}" style="{{ c.style }}"></span></sc-for><span class="overview-total" style="{{ p.heatTotalStyle }}">{{ p.totalStr }}</span>
+            <span class="overview-project-name" style="{{ p.heatNameStyle }}">{{ p.name }}</span><sc-for list="{{ p.cells }}" as="c" hint-placeholder-count="7"><span class="overview-cell" title="{{ c.title }}" style="{{ c.style }}"></span></sc-for><span class="overview-total" style="{{ p.heatTotalStyle }}">{{ p.matrixTotalStr }}</span>
           </sc-for>
         </div>
         <div class="overview-footer-grid"><span>每日合计</span><sc-for list="{{ overviewDayTotals }}" as="d" hint-placeholder-count="7"><span>{{ d }}</span></sc-for><span>{{ overviewTotalCompactStr }}</span></div>
-        <p style="margin:10px 0 0;color:rgba(240,200,150,.28);font-size:8px;line-height:1.5">点击上方项目排行，查看该项目在 7 天中的分布。</p>
+        <p style="margin:10px 0 0;color:rgba(240,200,150,.28);font-size:8px;line-height:1.5">底部固定展示最近 7 日；点击上方项目排行，查看该项目每天的分布。</p>
       </div>
-      <span style="margin-top:auto;padding-top:14px;color:rgba(240,200,150,.24);font-size:7.5px;line-height:1.5">过去 6 天 + 今天 · 历史旧数据无法拆分时计入「历史未分类」</span>
     </div>
   </sc-if>
 
@@ -924,17 +964,52 @@ class Component extends DCLogic {
     const weekFlames = past.map((day, index) => flameOf(day.sec, day.wd, clockAngles[index], index));
     const weekTotalStr = this.hm(week.reduce((sum, day) => sum + day.sec, 0));
 
-    // 过去六天 + 今天：历史总数继续兼容，升级后的数据按稳定项目 ID 精确归属。
-    const overviewDates = [];
-    for (let daysAgo = 6; daysAgo >= 0; daysAgo -= 1) {
-      const date = new Date();
+    // 历史总览可切换 7 天、30 天和全部记录；底部矩阵始终保留最近 7 天。
+    const overviewRange = ['7', '30', 'all'].includes(s.overviewRange) ? s.overviewRange : '7';
+    const overviewToday = new Date();
+    overviewToday.setHours(0, 0, 0, 0);
+    const overviewTodayKey = this.todayKey(overviewToday);
+    const compactOverviewTime = (seconds) => {
+      if (seconds <= 0) return '—';
+      if (seconds < 3600) return Math.max(1, Math.round(seconds / 60)) + 'm';
+      const hours = seconds / 3600;
+      return (hours >= 10 ? Math.round(hours) : hours.toFixed(1)) + 'h';
+    };
+    const overviewDateText = (date, includeYear) => (includeYear ? date.getFullYear() + ' 年 ' : '') + (date.getMonth() + 1) + ' 月 ' + date.getDate() + ' 日';
+    const overviewShortDate = (date) => (date.getMonth() + 1) + '/' + date.getDate();
+    const overviewDateAt = (daysAgo) => {
+      const date = new Date(overviewToday);
       date.setDate(date.getDate() - daysAgo);
-      overviewDates.push(date);
+      return date;
+    };
+    const recordedKeys = [...new Set([...Object.keys(s.history || {}), ...Object.keys(s.projectHistory || {})])]
+      .filter((key) => {
+        const time = this.startOfDay(key);
+        if (time == null || time > overviewToday.getTime()) return false;
+        const tracked = Object.values(((s.projectHistory || {})[key]) || {}).reduce((sum, seconds) => sum + Math.max(0, Number(seconds) || 0), 0);
+        return Math.max(0, Number((s.history || {})[key]) || 0) > 0 || tracked > 0;
+      });
+    const allStartTime = recordedKeys.length
+      ? Math.min(overviewToday.getTime(), ...recordedKeys.map((key) => this.startOfDay(key)))
+      : overviewToday.getTime();
+    const overviewDates = [];
+    if (overviewRange === 'all') {
+      const cursor = new Date(allStartTime);
+      while (cursor <= overviewToday) {
+        overviewDates.push(new Date(cursor));
+        cursor.setDate(cursor.getDate() + 1);
+      }
+    } else {
+      const count = Number(overviewRange);
+      for (let daysAgo = count - 1; daysAgo >= 0; daysAgo -= 1) overviewDates.push(overviewDateAt(daysAgo));
     }
     const overviewKeys = overviewDates.map((date) => this.todayKey(date));
+    const matrixDates = [];
+    for (let daysAgo = 6; daysAgo >= 0; daysAgo -= 1) matrixDates.push(overviewDateAt(daysAgo));
+    const matrixKeys = matrixDates.map((date) => this.todayKey(date));
     const currentProjectIndex = Object.fromEntries(s.projects.map((project, index) => [project.id, index]));
     const overviewIds = new Set(s.projects.map((project) => project.id));
-    overviewKeys.slice(0, 6).forEach((key) => {
+    [...overviewKeys, ...matrixKeys].forEach((key) => {
       Object.keys((s.projectHistory && s.projectHistory[key]) || {}).forEach((id) => overviewIds.add(id));
     });
     const overviewNameOf = (id) => {
@@ -942,32 +1017,48 @@ class Component extends DCLogic {
       if (Number.isInteger(currentIndex) && s.projects[currentIndex]) return s.projects[currentIndex].name;
       return (s.projectLabels && s.projectLabels[id]) || '已删除项目';
     };
+    const projectSecondsOn = (id, key) => {
+      if (key === overviewTodayKey) {
+        const currentIndex = currentProjectIndex[id];
+        return Number.isInteger(currentIndex) ? this.elapsedOf(currentIndex) : 0;
+      }
+      return Math.max(0, Math.floor((((s.projectHistory || {})[key] || {})[id]) || 0));
+    };
+    const legacySecondsOn = (key) => {
+      if (key === overviewTodayKey) return 0;
+      const tracked = Object.values(((s.projectHistory || {})[key]) || {}).reduce((sum, seconds) => sum + Math.max(0, Number(seconds) || 0), 0);
+      return Math.max(0, Math.floor(((s.history || {})[key] || 0) - tracked));
+    };
+    const hasLegacy = [...overviewKeys, ...matrixKeys].some((key) => legacySecondsOn(key) > 0);
+    if (hasLegacy) overviewIds.add('legacy-unassigned');
+    const valuesFor = (id, keys) => keys.map((key) => id === 'legacy-unassigned' ? legacySecondsOn(key) : projectSecondsOn(id, key));
     const overviewRaw = [...overviewIds].map((id) => ({
       id,
-      name: overviewNameOf(id),
-      values: overviewKeys.map((key, dayIndex) => {
-        if (dayIndex === 6) {
-          const currentIndex = currentProjectIndex[id];
-          return Number.isInteger(currentIndex) ? this.elapsedOf(currentIndex) : 0;
-        }
-        return Math.max(0, Math.floor((((s.projectHistory || {})[key] || {})[id]) || 0));
-      }),
+      name: id === 'legacy-unassigned' ? '历史未分类' : overviewNameOf(id),
+      values: valuesFor(id, overviewKeys),
+      matrixValues: valuesFor(id, matrixKeys),
+      legacy: id === 'legacy-unassigned',
     }));
-    const legacyValues = overviewKeys.map((key, dayIndex) => {
-      if (dayIndex === 6) return 0;
-      const tracked = Object.values(((s.projectHistory || {})[key]) || {}).reduce((sum, seconds) => sum + Math.max(0, Number(seconds) || 0), 0);
-      return Math.max(0, Math.floor((s.history[key] || 0) - tracked));
+    overviewRaw.forEach((project) => {
+      project.total = project.values.reduce((sum, seconds) => sum + seconds, 0);
+      project.matrixTotal = project.matrixValues.reduce((sum, seconds) => sum + seconds, 0);
     });
-    if (legacyValues.some((seconds) => seconds > 0)) overviewRaw.push({ id: 'legacy-unassigned', name: '历史未分类', values: legacyValues, legacy: true });
-    overviewRaw.forEach((project) => { project.total = project.values.reduce((sum, seconds) => sum + seconds, 0); });
-    overviewRaw.sort((a, b) => b.total - a.total || a.name.localeCompare(b.name, 'zh-CN'));
+    overviewRaw.sort((a, b) => b.total - a.total || b.matrixTotal - a.matrixTotal || a.name.localeCompare(b.name, 'zh-CN'));
 
     const overviewGrandTotal = overviewRaw.reduce((sum, project) => sum + project.total, 0);
     const overviewMaxProject = Math.max(1, ...overviewRaw.map((project) => project.total));
-    const overviewMaxCell = Math.max(1, ...overviewRaw.flatMap((project) => project.values));
-    const overviewDayTotalSeconds = Array.from({ length: 7 }, (_, dayIndex) => overviewRaw.reduce((sum, project) => sum + project.values[dayIndex], 0));
+    const overviewMaxCell = Math.max(1, ...overviewRaw.flatMap((project) => project.matrixValues));
+    const overviewMatrixDaySeconds = Array.from({ length: 7 }, (_, dayIndex) => overviewRaw.reduce((sum, project) => sum + project.matrixValues[dayIndex], 0));
+    const overviewMatrixTotal = overviewMatrixDaySeconds.reduce((sum, seconds) => sum + seconds, 0);
     const overviewFocusId = typeof s.overviewProj === 'string' && overviewRaw.some((project) => project.id === s.overviewProj) ? s.overviewProj : null;
+    const overviewFocusedRaw = overviewFocusId == null ? null : overviewRaw.find((project) => project.id === overviewFocusId);
+    const overviewSelectedDaySeconds = overviewFocusId == null
+      ? Array.from({ length: overviewDates.length }, (_, dayIndex) => overviewRaw.reduce((sum, project) => sum + project.values[dayIndex], 0))
+      : overviewFocusedRaw.values.slice();
+    const overviewSelectedTotal = overviewSelectedDaySeconds.reduce((sum, seconds) => sum + seconds, 0);
     const overviewColors = ['#ffb347', '#e8752e', '#bd633a', '#96533d', '#71483c', '#5b4038', '#4b3934'];
+    const overviewRangeLabel = overviewRange === '7' ? '近 7 天' : overviewRange === '30' ? '近 30 天' : '全部记录';
+    const overviewPeriodTag = overviewRange === '7' ? '近 7 日' : overviewRange === '30' ? '近 30 日' : '全部';
     const overviewProjects = overviewRaw.map((project, index) => {
       const dimmed = overviewFocusId != null && overviewFocusId !== project.id;
       const focused = overviewFocusId === project.id;
@@ -978,9 +1069,11 @@ class Component extends DCLogic {
         id: project.id,
         name: project.name,
         rank: index + 1,
+        focused,
         totalStr,
+        matrixTotalStr: compactOverviewTime(project.matrixTotal),
         shareStr,
-        focusLabel: (focused ? '取消聚焦' : '聚焦') + project.name + '，近 7 日' + totalStr,
+        focusLabel: (focused ? '取消聚焦' : '聚焦') + project.name + '，' + overviewRangeLabel + totalStr,
         onFocus: () => this.setState({ overviewProj: focused ? null : project.id }),
         rankRowStyle: {
           display: 'grid', gridTemplateColumns: '17px minmax(0,1fr) auto', gap: '7px', alignItems: 'center',
@@ -995,8 +1088,8 @@ class Component extends DCLogic {
         },
         heatNameStyle: { opacity: dimmed ? .22 : 1, color: focused ? '#ffd09a' : 'rgba(245,225,195,.65)' },
         heatTotalStyle: { opacity: dimmed ? .22 : 1, color: focused ? '#ffd09a' : 'rgba(255,220,178,.64)' },
-        cells: project.values.map((value, dayIndex) => ({
-          title: project.name + ' · ' + (dayIndex === 6 ? '今天' : (overviewDates[dayIndex].getMonth() + 1) + '月' + overviewDates[dayIndex].getDate() + '日') + ' · ' + this.hm(value),
+        cells: project.matrixValues.map((value, dayIndex) => ({
+          title: project.name + ' · ' + (dayIndex === 6 ? '今天' : overviewDateText(matrixDates[dayIndex], false)) + ' · ' + this.hm(value),
           style: {
             background: 'rgba(255,114,37,' + (value > 0 ? (.08 + value / overviewMaxCell * .72).toFixed(2) : '.025') + ')',
             opacity: dimmed ? .22 : 1,
@@ -1005,18 +1098,58 @@ class Component extends DCLogic {
       };
     });
     const overviewFocus = overviewFocusId == null ? null : overviewProjects.find((project) => project.id === overviewFocusId);
-    const overviewDays = overviewDates.map((date, index) => ({
+    const overviewDays = matrixDates.map((date, index) => ({
       label: index === 6 ? '今天' : dayNames[date.getDay()],
       style: { color: index === 6 ? '#ffb765' : 'rgba(240,200,150,.3)', fontSize: '7.5px', fontWeight: index === 6 ? 700 : 400, textAlign: 'center' },
     }));
-    const overviewStart = overviewDates[0], overviewEnd = overviewDates[6];
-    const overviewDateRange = (overviewStart.getMonth() + 1) + ' 月 ' + overviewStart.getDate() + ' 日 — ' + (overviewEnd.getMonth() + 1) + ' 月 ' + overviewEnd.getDate() + ' 日';
-    const compactOverviewTime = (seconds) => {
-      if (seconds <= 0) return '—';
-      if (seconds < 3600) return Math.max(1, Math.round(seconds / 60)) + 'm';
-      const hours = seconds / 3600;
-      return (hours >= 10 ? Math.round(hours) : hours.toFixed(1)) + 'h';
-    };
+    const overviewStart = overviewDates[0], overviewEnd = overviewDates[overviewDates.length - 1];
+    const overviewDateRange = overviewDateText(overviewStart, overviewStart.getFullYear() !== overviewEnd.getFullYear()) + ' — ' + overviewDateText(overviewEnd, false);
+
+    const previousDates = [];
+    if (overviewRange !== 'all') {
+      for (let daysAgo = overviewDates.length * 2 - 1; daysAgo >= overviewDates.length; daysAgo -= 1) previousDates.push(overviewDateAt(daysAgo));
+    }
+    const previousSelectedTotal = previousDates.reduce((sum, date) => {
+      const key = this.todayKey(date);
+      if (overviewFocusId === 'legacy-unassigned') return sum + legacySecondsOn(key);
+      if (overviewFocusId) return sum + projectSecondsOn(overviewFocusId, key);
+      const tracked = Object.values(((s.projectHistory || {})[key]) || {}).reduce((total, seconds) => total + Math.max(0, Number(seconds) || 0), 0);
+      return sum + Math.max(Math.max(0, Math.floor((s.history || {})[key] || 0)), tracked);
+    }, 0);
+    const overviewDelta = previousSelectedTotal > 0 ? Math.round((overviewSelectedTotal - previousSelectedTotal) / previousSelectedTotal * 100) : 0;
+    const overviewLongestStreakValue = overviewSelectedDaySeconds.reduce((state, seconds) => {
+      const current = seconds > 0 ? state.current + 1 : 0;
+      return { current, best: Math.max(state.best, current) };
+    }, { current: 0, best: 0 }).best;
+    const overviewWeekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+    const overviewWeekdayTotals = overviewWeekdays.map((_, weekday) => overviewDates.reduce((sum, date, index) => date.getDay() === weekday ? sum + overviewSelectedDaySeconds[index] : sum, 0));
+    const overviewBestWeekday = overviewWeekdayTotals.indexOf(Math.max(...overviewWeekdayTotals));
+
+    const overviewTrendRaw = overviewDates.map((date, index) => ({ date, value: overviewSelectedDaySeconds[index] }));
+    const overviewTrendSeries = [];
+    if (overviewTrendRaw.length <= 30) {
+      overviewTrendSeries.push(...overviewTrendRaw);
+    } else {
+      for (let index = 0; index < overviewTrendRaw.length; index += 7) {
+        const group = overviewTrendRaw.slice(index, index + 7);
+        overviewTrendSeries.push({
+          date: group[group.length - 1].date,
+          value: Math.round(group.reduce((sum, item) => sum + item.value, 0) / group.length),
+        });
+      }
+    }
+    const overviewTrendMax = Math.max(1, ...overviewTrendSeries.map((item) => item.value));
+    const overviewTrendPoints = overviewTrendSeries.map((item, index) => ({
+      x: overviewTrendSeries.length === 1 ? 256 : index / (overviewTrendSeries.length - 1) * 256,
+      y: 91 - item.value / overviewTrendMax * 86,
+    }));
+    const overviewTrendLinePath = overviewTrendPoints.map((point, index) => (index ? 'L' : 'M') + point.x.toFixed(2) + ',' + point.y.toFixed(2)).join(' ');
+    const overviewTrendAreaPath = overviewTrendPoints.length ? overviewTrendLinePath + ' L256,91 L0,91 Z' : '';
+    const overviewTrendLatest = overviewTrendPoints[overviewTrendPoints.length - 1] || { x: 256, y: 91 };
+    const overviewTrendMiddle = overviewTrendSeries[Math.floor(overviewTrendSeries.length / 2)] || { date: overviewToday };
+    const overviewFocusName = overviewFocus ? overviewFocus.name : null;
+    const overviewRangeButtonBase = { background: 'transparent', color: 'rgba(240,200,150,.36)' };
+    const overviewRangeButtonActive = { background: 'rgba(255,122,45,.075)', color: '#ffbd74' };
 
     const rem = Math.max(0, active.goal - activeElapsed);
     const remainingMinutes = Math.ceil(rem / 60);
@@ -1062,18 +1195,44 @@ class Component extends DCLogic {
       projBreakdown,
       weekFlames,
       weekTotalStr,
+      overviewTitle: '总览 · ' + overviewRangeLabel,
       overviewDateRange,
-      overviewTotalStr: this.hm(overviewGrandTotal),
-      overviewTotalCompactStr: compactOverviewTime(overviewGrandTotal),
-      overviewAverageStr: this.hm(Math.round(overviewGrandTotal / 7)),
-      overviewActiveDays: overviewDayTotalSeconds.filter((value) => value > 0).length + ' / 7 天',
-      overviewProjectCount: overviewRaw.filter((project) => !project.legacy).length + ' 个',
-      overviewMaxDayStr: this.hm(Math.max(...overviewDayTotalSeconds, 0)),
+      overviewPeriodTag,
+      overviewComparisonPrefix: overviewRange === 'all' ? '首次记录于' : '较上一周期',
+      overviewComparisonValue: overviewRange === 'all'
+        ? overviewDateText(new Date(allStartTime), true)
+        : (overviewDelta >= 0 ? '↑ ' : '↓ ') + Math.abs(overviewDelta) + '%',
+      overviewTotalStr: this.hm(overviewSelectedTotal),
+      overviewTotalCompactStr: compactOverviewTime(overviewMatrixTotal),
+      overviewAverageStr: compactOverviewTime(Math.round(overviewSelectedTotal / Math.max(1, overviewDates.length))),
+      overviewActiveDays: overviewSelectedDaySeconds.filter((value) => value > 0).length + ' / ' + overviewDates.length,
+      overviewLongestStreak: overviewLongestStreakValue + ' 天',
+      overviewMaxDayStr: compactOverviewTime(Math.max(...overviewSelectedDaySeconds, 0)),
       overviewProjects,
       overviewDays,
-      overviewDayTotals: overviewDayTotalSeconds.map(compactOverviewTime),
+      overviewDayTotals: overviewMatrixDaySeconds.map(compactOverviewTime),
+      overviewRange7Active: overviewRange === '7',
+      overviewRange30Active: overviewRange === '30',
+      overviewRangeAllActive: overviewRange === 'all',
+      overviewRange7Style: overviewRange === '7' ? overviewRangeButtonActive : overviewRangeButtonBase,
+      overviewRange30Style: overviewRange === '30' ? overviewRangeButtonActive : overviewRangeButtonBase,
+      overviewRangeAllStyle: overviewRange === 'all' ? overviewRangeButtonActive : overviewRangeButtonBase,
+      setOverviewRange7: () => this.setState({ overviewRange: '7' }),
+      setOverviewRange30: () => this.setState({ overviewRange: '30' }),
+      setOverviewRangeAll: () => this.setState({ overviewRange: 'all' }),
+      overviewTrendCaption: (overviewFocusName || '全部项目') + ' · ' + (overviewRange === 'all' ? '周均趋势' : '每日总时长'),
+      overviewTrendAriaLabel: (overviewFocusName || '全部项目') + '，' + overviewRangeLabel + '专注趋势',
+      overviewTrendAreaPath,
+      overviewTrendLinePath,
+      overviewTrendLatestX: overviewTrendLatest.x,
+      overviewTrendLatestY: overviewTrendLatest.y,
+      overviewTrendAxisStart: overviewShortDate(overviewTrendSeries[0] ? overviewTrendSeries[0].date : overviewStart),
+      overviewTrendAxisMiddle: overviewShortDate(overviewTrendMiddle.date),
+      overviewInsightText: overviewFocusName ? overviewFocusName + '的单日最高投入' : '你的高投入通常出现在',
+      overviewInsightValue: overviewFocusName ? compactOverviewTime(Math.max(...overviewSelectedDaySeconds, 0)) : overviewWeekdays[overviewBestWeekday],
+      overviewProjectCaption: overviewFocus ? '已聚焦 · 再次点击取消' : '点击项目聚焦趋势',
       overviewFocusCaption: overviewFocus ? '已聚焦' : '选择项目',
-      overviewFocusLabel: overviewFocus ? overviewFocus.name + ' · ' + overviewFocus.totalStr + ' · ' + overviewFocus.shareStr : '点击排行查看 7 日分布',
+      overviewFocusLabel: overviewFocus ? overviewFocus.name + ' · ' + overviewFocus.totalStr + ' · ' + overviewFocus.shareStr : '点击排行查看时间分布',
 
       toggle: () => {
         if (this.state.runStart) {
