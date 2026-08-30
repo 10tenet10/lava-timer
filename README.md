@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="src-tauri/icons/icon.png" width="96" height="96" alt="LavaTimer 图标">
+  <img src="src-tauri/icons/readme-icon.png" width="96" height="96" alt="LavaTimer 熔岩沙漏图标">
 </p>
 
 <h1 align="center">LavaTimer</h1>
