@@ -75,7 +75,7 @@
     <div class="lava-scroll-surface" data-lava-drag-surface="" style="width:300px;padding:22px;border-radius:24px;display:flex;flex-direction:column;gap:18px;background:linear-gradient(158deg,rgba(48,29,18,.86),rgba(20,12,8,.82));backdrop-filter:blur(28px) saturate(150%);-webkit-backdrop-filter:blur(28px) saturate(150%);border:1px solid rgba(255,180,90,.17);box-shadow:0 18px 36px -30px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,225,170,.15)">
 
       <div style="display:flex;align-items:flex-start;justify-content:flex-end;gap:6px">
-        <button onClick="{{ toOverview }}" title="查看近 7 日总览" aria-label="查看近 7 日总览" style="width:26px;height:26px;padding:0;border-radius:8px;cursor:pointer;border:1px solid rgba(255,180,90,.22);background:rgba(255,120,45,.07);color:#ffb765;display:flex;align-items:center;justify-content:center">
+        <button onClick="{{ toOverview }}" title="查看历史总览" aria-label="查看历史总览" style="width:26px;height:26px;padding:0;border-radius:8px;cursor:pointer;border:1px solid rgba(255,180,90,.22);background:rgba(255,120,45,.07);color:#ffb765;display:flex;align-items:center;justify-content:center">
           <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true"><rect x="1" y="7" width="2.4" height="5" rx="1.2" fill="currentColor" opacity=".72"/><rect x="5.3" y="4" width="2.4" height="8" rx="1.2" fill="currentColor" opacity=".86"/><rect x="9.6" y="1" width="2.4" height="11" rx="1.2" fill="currentColor"/></svg>
         </button>
         <div style="display:flex;gap:6px;flex-shrink:0">
@@ -308,6 +308,7 @@
 const TAURI_WINDOW_DRAG_THRESHOLD = 4;
 const TAURI_DRAG_SURFACE_SELECTOR = '[data-lava-drag-surface]';
 const TAURI_TEXT_EDIT_SELECTOR = 'input,textarea,select,[contenteditable=""],[contenteditable="true"]';
+const RUN_HEARTBEAT_INTERVAL_MS = 5000;
 
 function tauriInvoke(cmd, args) {
   const t = window.__TAURI__;
@@ -421,9 +422,11 @@ class Component extends DCLogic {
       proj: 0,
       dateKey: this.todayKey(),
       runStart: null,
+      lastActiveAt: null,
       history: {},
       projectHistory: {},
       projectLabels: {},
+      overviewRange: '7',
       overviewProj: null,
       expandUpward: false,
     };
@@ -483,7 +486,11 @@ class Component extends DCLogic {
         });
         s.proj = Number.isInteger(s.proj) ? Math.max(0, Math.min(s.proj, s.projects.length - 1)) : 0;
         s.view = ['panel', 'overview', 'capsule', 'settings'].includes(s.view) ? s.view : 'panel';
-        s.runStart = Number.isFinite(s.runStart) && s.runStart > 0 ? Math.min(s.runStart, Date.now()) : null;
+        const now = Date.now();
+        s.runStart = Number.isFinite(s.runStart) && s.runStart > 0 ? Math.min(s.runStart, now) : null;
+        s.lastActiveAt = Number.isFinite(s.lastActiveAt) && s.lastActiveAt > 0
+          ? Math.min(s.lastActiveAt, now)
+          : null;
         s.history = s.history && !Array.isArray(s.history) && typeof s.history === 'object'
           ? Object.fromEntries(Object.entries(s.history).filter(([key, value]) => this.startOfDay(key) != null && Number.isFinite(value) && value >= 0).map(([key, value]) => [key, Math.floor(value)]))
           : {};
@@ -493,9 +500,19 @@ class Component extends DCLogic {
         s.projectLabels = s.projectLabels && !Array.isArray(s.projectLabels) && typeof s.projectLabels === 'object'
           ? Object.fromEntries(Object.entries(s.projectLabels).filter(([id, name]) => /^[a-zA-Z0-9_-]{1,80}$/.test(id) && typeof name === 'string' && name.trim()).map(([id, name]) => [id, name.trim().slice(0, 10)]))
           : {};
+        s.overviewRange = ['7', '30', 'all'].includes(s.overviewRange) ? s.overviewRange : '7';
         s.projects.forEach((project) => { s.projectLabels[project.id] = project.name; });
         s.overviewProj = null;
         if (this.startOfDay(s.dateKey) == null) s.dateKey = this.todayKey();
+        // 冷启动不能把应用未运行的时间算作专注时间。新版结算到最后一次
+        // 存活心跳；旧版没有心跳，只保留退出前已经结算的秒数并直接暂停。
+        if (s.runStart) {
+          const stoppedAt = s.lastActiveAt && s.lastActiveAt >= s.runStart
+            ? s.lastActiveAt
+            : s.runStart;
+          s = this.settleStoppedState(s, stoppedAt);
+          this._recoveredStoppedRun = true;
+        }
         // 跨天:把旧日各项目秒数折入历史,清零
         const today = this.todayKey();
         if (s.dateKey !== today) {
@@ -507,8 +524,8 @@ class Component extends DCLogic {
   }
 
   save() {
-    const { view, projects, proj, dateKey, runStart, history, projectHistory, projectLabels } = this.state;
-    try { localStorage.setItem(this.STORE_KEY, JSON.stringify({ view, projects, proj, dateKey, runStart, history, projectHistory, projectLabels })); } catch (e) {}
+    const { view, projects, proj, dateKey, runStart, lastActiveAt, history, projectHistory, projectLabels, overviewRange } = this.state;
+    try { localStorage.setItem(this.STORE_KEY, JSON.stringify({ view, projects, proj, dateKey, runStart, lastActiveAt, history, projectHistory, projectLabels, overviewRange })); } catch (e) {}
   }
 
   update(patch, callback) {
@@ -520,8 +537,14 @@ class Component extends DCLogic {
 
   componentDidMount() {
     if (isTauriRuntime()) document.body.style.background = 'transparent';
+    // 立即覆盖旧的运行标记，避免恢复后的暂停状态尚未落盘时再次退出。
+    if (this._recoveredStoppedRun) {
+      this._recoveredStoppedRun = false;
+      this.save();
+    }
     installWindowDragBridge();
     this.syncWindowToContent();
+    this.pushTrayTitle();
     this._tick = () => this.runTimerTick();
     this._t = setInterval(this._tick, 1000);
     this._vis = () => {
@@ -562,6 +585,7 @@ class Component extends DCLogic {
   }
   componentDidUpdate() {
     this.syncWindowToContent();
+    this.pushTrayTitle();
   }
 
   syncWindowToContent() {
@@ -608,14 +632,44 @@ class Component extends DCLogic {
 
   pushTrayTitle() {
     if (!isTauriRuntime()) return;
-    const sec = this.activeElapsed();
-    const title = this.state.runStart
-      ? Math.floor(sec / 3600) + ':' + this.pad(Math.floor((sec % 3600) / 60))
-      : '';
-    if (title !== this._lastTray) {
-      this._lastTray = title;
-      tauriInvoke('set_tray_title', { title }).catch(() => {});
+    const project = this.state.projects[this.state.proj];
+    const baseSeconds = project ? Math.max(0, Math.floor(project.sec || 0)) : 0;
+    const runStartMs = this.state.runStart || null;
+    const signature = baseSeconds + ':' + (runStartMs || 'paused');
+    if (signature !== this._lastTraySignature) {
+      this._lastTraySignature = signature;
+      tauriInvoke('sync_tray_timer', { baseSeconds, runStartMs }).catch(() => {
+        this._lastTraySignature = null;
+      });
     }
+  }
+
+  checkpointRun(nowValue) {
+    if (!this.state.runStart) return;
+    const now = Number.isFinite(nowValue) ? nowValue : Date.now();
+    const last = Number.isFinite(this.state.lastActiveAt) ? this.state.lastActiveAt : 0;
+    if (now - last < RUN_HEARTBEAT_INTERVAL_MS) return;
+    this.update({ lastActiveAt: now });
+  }
+
+  // 将一次已经停止的运行结算到指定时刻，并返回暂停状态。
+  settleStoppedState(s, stoppedAtValue) {
+    if (!s.runStart) return { ...s, runStart: null, lastActiveAt: null };
+
+    const stoppedAt = Math.max(s.runStart, Math.min(Date.now(), Number(stoppedAtValue) || s.runStart));
+    const stoppedDay = this.todayKey(new Date(stoppedAt));
+    if (s.dateKey !== stoppedDay) {
+      const settled = this.rolloverState(s, stoppedDay, stoppedAt);
+      return { ...settled, runStart: null, lastActiveAt: null };
+    }
+
+    const projects = s.projects.slice();
+    const i = s.proj;
+    if (projects[i]) {
+      const addedSeconds = Math.max(0, Math.floor((stoppedAt - s.runStart) / 1000));
+      projects[i] = { ...projects[i], sec: projects[i].sec + addedSeconds };
+    }
+    return { ...s, projects, runStart: null, lastActiveAt: null };
   }
 
   // 按本地日界线拆分连续计时，避免跨午夜或休眠后把全部时长记到旧日期。
@@ -673,6 +727,7 @@ class Component extends DCLogic {
       projectLabels,
       dateKey: today,
       runStart: running ? now : null,
+      lastActiveAt: running ? now : null,
     };
   }
 
@@ -699,7 +754,10 @@ class Component extends DCLogic {
       .finally(() => {
         this._nativeScreenCheckPending = false;
         this.rolloverCheck();
-        if (this.state.runStart) this.forceUpdate();
+        if (this.state.runStart) {
+          this.forceUpdate();
+          this.checkpointRun();
+        }
         this.pushTrayTitle();
         this.syncWindowToContent();
       });
@@ -716,21 +774,7 @@ class Component extends DCLogic {
     const stoppedAt = Number.isFinite(eventTime)
       ? Math.min(now, eventTime)
       : now;
-    const stoppedDay = this.todayKey(new Date(stoppedAt));
-
-    if (s.dateKey !== stoppedDay) {
-      const settled = this.rolloverState(s, stoppedDay, stoppedAt);
-      this.update({ ...settled, runStart: null }, () => this.pushTrayTitle());
-      return;
-    }
-
-    const projects = s.projects.slice();
-    const i = s.proj;
-    if (projects[i]) {
-      const addedSeconds = Math.max(0, Math.floor((stoppedAt - s.runStart) / 1000));
-      projects[i] = { ...projects[i], sec: projects[i].sec + addedSeconds };
-    }
-    this.update({ projects, runStart: null }, () => this.pushTrayTitle());
+    this.update(this.settleStoppedState(s, stoppedAt), () => this.pushTrayTitle());
   }
 
   // 某项目今日秒数(含正在计时的增量)
@@ -755,7 +799,8 @@ class Component extends DCLogic {
       const projects = this.state.projects.slice();
       const old = this.state.proj;
       projects[old] = { ...projects[old], sec: this.elapsedOf(old) };
-      this.update({ projects, proj: i, runStart: Date.now() });
+      const now = Date.now();
+      this.update({ projects, proj: i, runStart: now, lastActiveAt: now });
     } else {
       this.update({ proj: i });
     }
@@ -880,9 +925,16 @@ class Component extends DCLogic {
       },
       onDelete: () => {
         if (!canDelete) return;
+        if (!window.confirm('删除“' + p.name + '”？该项目今天尚未归档的计时会一并删除。')) return;
         const projects = s.projects.filter((_, j) => j !== i);
         const proj = Math.min(s.proj >= i && s.proj > 0 ? s.proj - 1 : s.proj, projects.length - 1);
-        this.update({ projects, proj, runStart: i === s.proj ? null : s.runStart, overviewProj: s.overviewProj === p.id ? null : s.overviewProj });
+        this.update({
+          projects,
+          proj,
+          runStart: i === s.proj ? null : s.runStart,
+          lastActiveAt: i === s.proj ? null : s.lastActiveAt,
+          overviewProj: s.overviewProj === p.id ? null : s.overviewProj,
+        });
       },
       deleteStyle: canDelete
         ? { ...delBase, cursor: 'pointer', color: 'rgba(255,180,140,.8)' }
@@ -1217,9 +1269,9 @@ class Component extends DCLogic {
       overviewRange7Style: overviewRange === '7' ? overviewRangeButtonActive : overviewRangeButtonBase,
       overviewRange30Style: overviewRange === '30' ? overviewRangeButtonActive : overviewRangeButtonBase,
       overviewRangeAllStyle: overviewRange === 'all' ? overviewRangeButtonActive : overviewRangeButtonBase,
-      setOverviewRange7: () => this.setState({ overviewRange: '7' }),
-      setOverviewRange30: () => this.setState({ overviewRange: '30' }),
-      setOverviewRangeAll: () => this.setState({ overviewRange: 'all' }),
+      setOverviewRange7: () => this.update({ overviewRange: '7' }),
+      setOverviewRange30: () => this.update({ overviewRange: '30' }),
+      setOverviewRangeAll: () => this.update({ overviewRange: 'all' }),
       overviewTrendCaption: (overviewFocusName || '全部项目') + ' · ' + (overviewRange === 'all' ? '周均趋势' : '每日总时长'),
       overviewTrendAriaLabel: (overviewFocusName || '全部项目') + '，' + overviewRangeLabel + '专注趋势',
       overviewTrendAreaPath,
@@ -1236,20 +1288,24 @@ class Component extends DCLogic {
 
       toggle: () => {
         if (this.state.runStart) {
-          // 结算当前项目
-          const projects = this.state.projects.slice();
-          const i = this.state.proj;
-          projects[i] = { ...projects[i], sec: this.elapsedOf(i) };
-          this.update({ projects, runStart: null });
+          this.update(this.settleStoppedState(this.state, Date.now()));
         } else {
-          this.update({ runStart: Date.now() });
+          const now = Date.now();
+          this.update({ runStart: now, lastActiveAt: now });
         }
       },
       reset: () => {
+        const elapsed = this.activeElapsed();
+        if (elapsed > 0 && !window.confirm('将“' + this.state.projects[this.state.proj].name + '”今天的计时重置为 0？')) return;
         const projects = this.state.projects.slice();
         const i = this.state.proj;
         projects[i] = { ...projects[i], sec: 0 };
-        this.update({ projects, runStart: this.state.runStart ? Date.now() : null });
+        const now = Date.now();
+        this.update({
+          projects,
+          runStart: this.state.runStart ? now : null,
+          lastActiveAt: this.state.runStart ? now : null,
+        });
       },
       addProject: () => {
         if (this.state.projects.length >= 6) return;

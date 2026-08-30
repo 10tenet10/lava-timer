@@ -1,14 +1,15 @@
 // 熔岩计时器 — Tauri v2 菜单栏壳
 // 覆盖 src-tauri/src/lib.rs
 
-use std::sync::{
-    atomic::{AtomicU64, Ordering},
-    Mutex,
-};
 #[cfg(target_os = "macos")]
+use std::ptr::NonNull;
 use std::{
-    ptr::NonNull,
-    time::{SystemTime, UNIX_EPOCH},
+    sync::{
+        atomic::{AtomicU64, Ordering},
+        Mutex,
+    },
+    thread,
+    time::{Duration, SystemTime, UNIX_EPOCH},
 };
 use tauri::{
     image::Image,
@@ -25,15 +26,85 @@ struct ScreenInactiveState {
     last_at: AtomicU64,
 }
 
-#[cfg(target_os = "macos")]
-fn record_screen_inactive(app: &tauri::AppHandle) {
-    let stopped_at = SystemTime::now()
+#[derive(Default)]
+struct TrayTimerState {
+    inner: Mutex<TrayTimer>,
+}
+
+#[derive(Default)]
+struct TrayTimer {
+    base_seconds: u64,
+    run_start_ms: Option<u64>,
+}
+
+fn unix_time_ms() -> u64 {
+    SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map(|duration| duration.as_millis() as u64)
-        .unwrap_or(0);
+        .unwrap_or(0)
+}
+
+fn tray_elapsed_seconds(timer: &TrayTimer, now_ms: u64) -> u64 {
+    timer.base_seconds
+        + timer
+            .run_start_ms
+            .map(|started_at| now_ms.saturating_sub(started_at) / 1000)
+            .unwrap_or(0)
+}
+
+fn tray_timer_title(timer: &TrayTimer, now_ms: u64) -> String {
+    if timer.run_start_ms.is_none() {
+        return String::new();
+    }
+    let seconds = tray_elapsed_seconds(timer, now_ms);
+    format!("{}:{:02}", seconds / 3600, (seconds % 3600) / 60)
+}
+
+fn apply_tray_timer_title(app: &tauri::AppHandle, now_ms: u64) {
+    let title = {
+        let state = app.state::<TrayTimerState>();
+        let Ok(timer) = state.inner.lock() else {
+            return;
+        };
+        tray_timer_title(&timer, now_ms)
+    };
+
+    if let Some(tray) = app.tray_by_id("main-tray") {
+        // macOS 上传 None 不会可靠清除旧标题，因此暂停时也显式传空串。
+        let _ = tray.set_title(Some(title.as_str()));
+    }
+}
+
+fn pause_tray_timer_at(app: &tauri::AppHandle, stopped_at: u64) {
+    {
+        let state = app.state::<TrayTimerState>();
+        let Ok(mut timer) = state.inner.lock() else {
+            return;
+        };
+        if let Some(started_at) = timer.run_start_ms.take() {
+            timer.base_seconds = timer
+                .base_seconds
+                .saturating_add(stopped_at.saturating_sub(started_at) / 1000);
+        }
+    }
+    apply_tray_timer_title(app, stopped_at);
+}
+
+fn install_tray_timer_updater(app: tauri::AppHandle) {
+    thread::spawn(move || loop {
+        thread::sleep(Duration::from_secs(1));
+        apply_tray_timer_title(&app, unix_time_ms());
+    });
+}
+
+#[cfg(target_os = "macos")]
+fn record_screen_inactive(app: &tauri::AppHandle) {
+    let stopped_at = unix_time_ms();
     app.state::<ScreenInactiveState>()
         .last_at
         .store(stopped_at, Ordering::SeqCst);
+    // WebView 隐藏或熄屏时可能被系统节流，托盘必须在原生侧立即暂停。
+    pause_tray_timer_at(app, stopped_at);
     let _ = app.emit("lava://screen-off", stopped_at);
 }
 
@@ -145,16 +216,29 @@ fn should_expand_upward(
     }
 }
 
-/// 前端每秒调用:把 "1:24" 之类的计时推到菜单栏标题
+/// 前端只同步计时基数和起点；之后由原生线程持续刷新菜单栏。
 #[tauri::command]
-fn set_tray_title(app: tauri::AppHandle, title: String) {
-    if let Some(tray) = app.tray_by_id("main-tray") {
-        let _ = tray.set_title(if title.is_empty() {
-            None
-        } else {
-            Some(title.as_str())
-        });
+fn sync_tray_timer(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, TrayTimerState>,
+    base_seconds: u64,
+    run_start_ms: Option<u64>,
+) {
+    let last_inactive_at = app
+        .state::<ScreenInactiveState>()
+        .last_at
+        .load(Ordering::SeqCst);
+    {
+        let Ok(mut timer) = state.inner.lock() else {
+            return;
+        };
+        timer.base_seconds = base_seconds;
+        // 熄屏前排队的旧同步命令不能重新启动已经暂停的原生计时。
+        timer.run_start_ms = run_start_ms
+            .map(|value| value.min(unix_time_ms()))
+            .filter(|value| *value > last_inactive_at);
     }
+    apply_tray_timer_title(&app, unix_time_ms());
 }
 
 /// 让透明原生窗口跟随前端真实内容尺寸，避免不可见区域拦截其它应用点击。
@@ -339,9 +423,10 @@ pub fn run() {
     tauri::Builder::default()
         .manage(WindowLayoutState::default())
         .manage(ScreenInactiveState::default())
+        .manage(TrayTimerState::default())
         .plugin(tauri_plugin_positioner::init())
         .invoke_handler(tauri::generate_handler![
-            set_tray_title,
+            sync_tray_timer,
             set_main_window_size,
             main_window_expands_upward,
             snap_main_window_to_edge,
@@ -398,6 +483,8 @@ pub fn run() {
                 })
                 .build(app)?;
 
+            install_tray_timer_updater(app.handle().clone());
+
             Ok(())
         })
         .on_window_event(|window, event| {
@@ -448,4 +535,43 @@ pub fn run() {
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{should_expand_upward, tray_elapsed_seconds, tray_timer_title, TrayTimer};
+
+    #[test]
+    fn native_tray_timer_advances_without_webview_ticks() {
+        let timer = TrayTimer {
+            base_seconds: 77 * 60,
+            run_start_ms: Some(1_000),
+        };
+
+        assert_eq!(
+            tray_elapsed_seconds(&timer, 66 * 60 * 1000 + 1_000),
+            143 * 60
+        );
+        assert_eq!(tray_timer_title(&timer, 66 * 60 * 1000 + 1_000), "2:23");
+    }
+
+    #[test]
+    fn paused_tray_timer_has_no_title() {
+        let timer = TrayTimer {
+            base_seconds: 2 * 3600 + 22 * 60,
+            run_start_ms: None,
+        };
+
+        assert_eq!(tray_timer_title(&timer, 123_000), "");
+    }
+
+    #[test]
+    fn window_expands_down_when_there_is_enough_space() {
+        assert!(!should_expand_upward(100, 60, 560, 24, 900));
+    }
+
+    #[test]
+    fn window_expands_up_near_the_screen_bottom() {
+        assert!(should_expand_upward(800, 60, 560, 24, 900));
+    }
 }

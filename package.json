@@ -1,14 +1,19 @@
 {
   "name": "lava-timer",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "A lightweight macOS menu bar focus timer built with Tauri.",
   "license": "MIT",
   "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "tauri dev",
     "build": "tauri build",
-    "check": "cargo test --manifest-path src-tauri/Cargo.toml",
+    "test:frontend": "node --test tests/frontend-state.test.mjs",
+    "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml",
+    "check": "npm run test:frontend && npm run test:rust",
     "info": "tauri info",
     "tauri": "tauri"
   },
