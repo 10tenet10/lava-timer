@@ -5,6 +5,10 @@
 <h1 align="center">LavaTimer</h1>
 
 <p align="center">
+  简体中文 · <a href="README.en.md">English</a>
+</p>
+
+<p align="center">
   一枚安静驻留桌面的多项目专注计时器。<br>
   轻量开始，清楚推进，回头看见时间去了哪里。
 </p>
