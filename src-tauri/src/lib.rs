@@ -446,7 +446,9 @@ pub fn run() {
 
             // 托盘图标:icons/tray.png,白色+透明 → 模板图
             let icon = Image::from_path(app.path().resource_dir()?.join("icons/tray.png"))
-                .or_else(|_| Image::from_path("icons/tray.png"))?;
+                .or_else(|_| Image::from_path("icons/tray.png"))
+                // 打包资源异常时仍可使用编译进二进制的图标，避免应用启动即退出。
+                .or_else(|_| Image::from_bytes(include_bytes!("../icons/tray.png")))?;
 
             TrayIconBuilder::with_id("main-tray")
                 .icon(icon)

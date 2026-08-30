@@ -203,3 +203,11 @@ test('destructive reset and delete actions require confirmation', () => {
   assert.equal(component.state.projects[0].sec, 0);
   assert.equal(component.state.projects.length, 1);
 });
+
+test('macOS bundle includes the tray icon required during setup', () => {
+  const config = JSON.parse(
+    readFileSync(new URL('../src-tauri/tauri.conf.json', import.meta.url), 'utf8'),
+  );
+
+  assert.ok(config.bundle.resources.includes('icons/tray.png'));
+});
