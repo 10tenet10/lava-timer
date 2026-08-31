@@ -212,17 +212,22 @@ test('macOS bundle includes the tray icon required during setup', () => {
   assert.ok(config.bundle.resources.includes('icons/tray.png'));
 });
 
-test('main window is visible on launch and macOS uses menu bar app mode', () => {
+test('main window is visible on launch and Dock remains as a recovery entry', () => {
   const config = JSON.parse(
     readFileSync(new URL('../src-tauri/tauri.conf.json', import.meta.url), 'utf8'),
   );
-  const infoPlist = readFileSync(
-    new URL('../src-tauri/Info.plist', import.meta.url),
+  const nativeSource = readFileSync(
+    new URL('../src-tauri/src/lib.rs', import.meta.url),
     'utf8',
   );
 
   assert.equal(config.app.windows[0].visible, true);
-  assert.match(infoPlist, /<key>LSUIElement<\/key>\s*<true\/>/);
+  assert.doesNotMatch(nativeSource, /ActivationPolicy::Accessory/);
+  assert.match(nativeSource, /RunEvent::Reopen/);
+});
+
+test('every view exposes a close-window action', () => {
+  assert.ok((html.match(/onClick="\{\{ hideWindow \}\}"/g) || []).length >= 4);
 });
 
 test('frontend runtime is bundled locally and loaded before support.js', () => {

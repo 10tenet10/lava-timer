@@ -15,7 +15,7 @@ use tauri::{
     image::Image,
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    ActivationPolicy, Emitter, LogicalSize, Manager, PhysicalPosition, WindowEvent,
+    Emitter, LogicalSize, Manager, PhysicalPosition, WindowEvent,
 };
 use tauri_plugin_positioner::{Position, WindowExt};
 
@@ -54,10 +54,26 @@ fn tray_elapsed_seconds(timer: &TrayTimer, now_ms: u64) -> u64 {
 
 fn tray_timer_title(timer: &TrayTimer, now_ms: u64) -> String {
     if timer.run_start_ms.is_none() {
-        return String::new();
+        return "Lava".to_string();
     }
     let seconds = tray_elapsed_seconds(timer, now_ms);
     format!("{}:{:02}", seconds / 3600, (seconds % 3600) / 60)
+}
+
+fn show_main_window(app: &tauri::AppHandle) {
+    if let Some(win) = app.get_webview_window("main") {
+        let _ = win.set_always_on_top(true);
+        let _ = win.show();
+        let _ = win.set_focus();
+    }
+}
+
+#[tauri::command]
+fn hide_main_window(app: tauri::AppHandle) -> Result<(), String> {
+    let win = app
+        .get_webview_window("main")
+        .ok_or_else(|| "main window not found".to_string())?;
+    win.hide().map_err(|e| e.to_string())
 }
 
 fn apply_tray_timer_title(app: &tauri::AppHandle, now_ms: u64) {
@@ -70,7 +86,7 @@ fn apply_tray_timer_title(app: &tauri::AppHandle, now_ms: u64) {
     };
 
     if let Some(tray) = app.tray_by_id("main-tray") {
-        // macOS 上传 None 不会可靠清除旧标题，因此暂停时也显式传空串。
+        // 暂停时保留 Lava 标识，确保模板图标不可见时仍有菜单栏入口。
         let _ = tray.set_title(Some(title.as_str()));
     }
 }
@@ -420,25 +436,22 @@ fn snap_main_window_to_edge(app: tauri::AppHandle) -> Result<(), String> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let app = tauri::Builder::default()
         .manage(WindowLayoutState::default())
         .manage(ScreenInactiveState::default())
         .manage(TrayTimerState::default())
         .plugin(tauri_plugin_positioner::init())
         .invoke_handler(tauri::generate_handler![
             sync_tray_timer,
+            hide_main_window,
             set_main_window_size,
             main_window_expands_upward,
             snap_main_window_to_edge,
             latest_screen_inactive_at
         ])
         .setup(|app| {
-            // 菜单栏 App:不出现在 Dock
             #[cfg(target_os = "macos")]
-            {
-                app.set_activation_policy(ActivationPolicy::Accessory);
-                install_screen_off_observers(app.handle().clone());
-            }
+            install_screen_off_observers(app.handle().clone());
 
             // 右键菜单(左键弹面板,右键退出)
             let quit = MenuItem::with_id(app, "quit", "退出 LavaTimer", true, None::<&str>)?;
@@ -453,6 +466,7 @@ pub fn run() {
             TrayIconBuilder::with_id("main-tray")
                 .icon(icon)
                 .icon_as_template(true) // 关键:自动适配深浅色菜单栏
+                .title("Lava") // 即使模板图标被系统隐藏，仍保留可识别入口。
                 .menu(&menu)
                 .show_menu_on_left_click(false) // 左键留给弹面板
                 .on_menu_event(|app, event| {
@@ -475,10 +489,8 @@ pub fn run() {
                             if win.is_visible().unwrap_or(false) {
                                 let _ = win.hide();
                             } else {
-                                let _ = win.set_always_on_top(true);
                                 let _ = win.move_window(Position::TrayBottomCenter);
-                                let _ = win.show();
-                                let _ = win.set_focus();
+                                show_main_window(app);
                             }
                         }
                     }
@@ -535,8 +547,21 @@ pub fn run() {
                 _ => {}
             }
         })
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application");
+
+    app.run(|app_handle, event| {
+        #[cfg(target_os = "macos")]
+        if let tauri::RunEvent::Reopen {
+            has_visible_windows,
+            ..
+        } = event
+        {
+            if !has_visible_windows {
+                show_main_window(app_handle);
+            }
+        }
+    });
 }
 
 #[cfg(test)]
@@ -558,13 +583,13 @@ mod tests {
     }
 
     #[test]
-    fn paused_tray_timer_has_no_title() {
+    fn paused_tray_timer_keeps_a_visible_app_title() {
         let timer = TrayTimer {
             base_seconds: 2 * 3600 + 22 * 60,
             run_start_ms: None,
         };
 
-        assert_eq!(tray_timer_title(&timer, 123_000), "");
+        assert_eq!(tray_timer_title(&timer, 123_000), "Lava");
     }
 
     #[test]
