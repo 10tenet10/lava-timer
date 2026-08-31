@@ -1,7 +1,7 @@
 {
   "name": "lava-timer",
   "private": true,
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "A lightweight macOS menu bar focus timer built with Tauri.",
   "license": "MIT",
   "type": "module",

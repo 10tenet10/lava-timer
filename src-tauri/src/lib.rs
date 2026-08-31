@@ -4,6 +4,8 @@
 #[cfg(target_os = "macos")]
 use objc2_app_kit::{NSScrollElasticity, NSScrollView, NSView};
 #[cfg(target_os = "macos")]
+use objc2_foundation::NSPoint;
+#[cfg(target_os = "macos")]
 use std::ptr::NonNull;
 use std::{
     sync::{
@@ -31,6 +33,9 @@ fn lock_webview_scroll(view: &NSView) {
         scroll_view.setAutohidesScrollers(true);
         scroll_view.setHorizontalScrollElasticity(NSScrollElasticity::None);
         scroll_view.setVerticalScrollElasticity(NSScrollElasticity::None);
+        let clip_view = scroll_view.contentView();
+        clip_view.scrollToPoint(NSPoint::new(0.0, 0.0));
+        scroll_view.reflectScrolledClipView(&clip_view);
     }
 
     for subview in view.subviews() {

@@ -230,6 +230,39 @@ test('every view exposes a close-window action', () => {
   assert.ok((html.match(/onClick="\{\{ hideWindow \}\}"/g) || []).length >= 4);
 });
 
+test('the panel exposes a complete minute and second readout', () => {
+  const now = new Date(2026, 7, 31, 12, 0, 0).getTime();
+  const { component } = createComponent({
+    now,
+    saved: savedState({
+      dateKey: '2026-08-31',
+      projects: [
+        { id: 'project-a', name: '项目 A', goal: 7200, sec: 11 * 60 + 48 },
+        { id: 'project-b', name: '项目 B', goal: 3600, sec: 0 },
+      ],
+    }),
+  });
+
+  const values = component.renderVals();
+  assert.equal(values.timeStr, '11:48');
+  assert.equal(values.timePrimaryStr, '11');
+  assert.equal(values.timeSecondsStr, ':48');
+});
+
+test('the central timer readout uses native SVG text nodes in one compositing layer', () => {
+  const ringStart = html.indexOf('<svg width="100%" viewBox="0 0 300 250"');
+  const ringEnd = html.indexOf('</svg>', ringStart);
+  const ringMarkup = html.slice(ringStart, ringEnd);
+
+  assert.ok(ringStart >= 0 && ringEnd > ringStart);
+  assert.doesNotMatch(ringMarkup, /<foreignObject[^>]*>/);
+  assert.match(ringMarkup, /<text id="lava-ring-project"[^>]*><\/text>/);
+  assert.match(ringMarkup, /<tspan id="lava-ring-time-primary"[^>]*><\/tspan>/);
+  assert.match(ringMarkup, /<tspan id="lava-ring-time-seconds"[^>]*><\/tspan>/);
+  assert.match(ringMarkup, /<text id="lava-ring-goal"[^>]*><\/text>/);
+  assert.doesNotMatch(ringMarkup, /\{\{ (?:activeName|timePrimaryStr|timeSecondsStr|pctStr|goalStr) \}\}/);
+});
+
 test('the native window shell cannot expose system scrollbars', () => {
   const nativeSource = readFileSync(
     new URL('../src-tauri/src/lib.rs', import.meta.url),
@@ -263,6 +296,18 @@ test('the native window shell cannot expose system scrollbars', () => {
     nativeSource,
     /setVerticalScrollElasticity\(NSScrollElasticity::None\)/,
   );
+  assert.match(nativeSource, /scrollToPoint\(NSPoint::new\(0\.0, 0\.0\)\)/);
+  assert.match(
+    html,
+    /addEventListener\('wheel', this\._preventRootScroll, \{ capture: true, passive: false \}\)/,
+  );
+  assert.match(
+    html,
+    /addEventListener\('scroll', this\._resetRootScroll, \{ capture: true, passive: true \}\)/,
+  );
+  assert.match(html, /\.lava-internal-scroll\{overflow-x:hidden!important;overflow-y:auto!important/);
+  assert.ok((html.match(/data-lava-internal-scroll=""/g) || []).length >= 1);
+  assert.match(html, /window\.addEventListener\('keydown', this\._scrollInternalByKey, true\)/);
 });
 
 test('frontend runtime is bundled locally and loaded before support.js', () => {

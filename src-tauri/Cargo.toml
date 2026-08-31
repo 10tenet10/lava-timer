@@ -1,6 +1,6 @@
 [package]
 name = "lava-timer"
-version = "1.0.4"
+version = "1.0.5"
 description = "A lightweight macOS menu bar focus timer"
 authors = ["10tenet10"]
 license = "MIT"
@@ -25,5 +25,5 @@ tauri-plugin-positioner = { version = "2", features = ["tray-icon"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 block2 = "0.6"
-objc2-app-kit = { version = "0.3", default-features = false, features = ["NSResponder", "NSScrollView", "NSView", "NSWorkspace"] }
-objc2-foundation = { version = "0.3", default-features = false, features = ["NSDistributedNotificationCenter", "NSNotification", "NSOperation", "NSString", "block2"] }
+objc2-app-kit = { version = "0.3", default-features = false, features = ["NSClipView", "NSResponder", "NSScrollView", "NSView", "NSWorkspace"] }
+objc2-foundation = { version = "0.3", default-features = false, features = ["NSDistributedNotificationCenter", "NSGeometry", "NSNotification", "NSOperation", "NSString", "block2"] }

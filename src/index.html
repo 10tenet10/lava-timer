@@ -31,32 +31,26 @@
   [data-lava-drag-surface] input,[data-lava-drag-surface] textarea{-webkit-user-select:text;user-select:text}
   .lava-scroll-surface{max-height:720px;overflow:hidden;overscroll-behavior:none;scrollbar-width:none;-ms-overflow-style:none}
   .lava-scroll-surface::-webkit-scrollbar{display:none;width:0;height:0}
+  .lava-internal-scroll{overflow-x:hidden!important;overflow-y:auto!important;overscroll-behavior:contain}
   .drag-pass{pointer-events:none;-webkit-user-select:none;user-select:none}
-  .panel-ring-readout{position:absolute;inset:0;pointer-events:none;font-variant-numeric:tabular-nums;white-space:nowrap}
-  .panel-ring-readout__project,.panel-ring-readout__goal{position:absolute;right:0;left:0;height:13px;line-height:13px;text-align:center}
-  .panel-ring-readout__project{top:calc(50% - 29px);font-size:11px;color:rgba(255,180,110,.85);font-weight:600;letter-spacing:.02em}
-  .panel-ring-readout__time{position:absolute;top:calc(50% - 16px);right:0;left:0;height:32px;display:flex;align-items:center;justify-content:center;color:#fff2dd;line-height:1}
-  .panel-ring-readout__primary{font-size:24px;font-weight:300;line-height:1;letter-spacing:-.025em}
-  .panel-ring-readout__seconds{margin-left:1px;font-size:11px;font-weight:520;line-height:1;letter-spacing:-.02em;color:rgba(255,226,190,.68)}
-  .panel-ring-readout__goal{top:calc(50% + 16px);font-size:11.5px;color:rgba(255,160,90,.85);font-weight:600}
   .capsule-pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:1px;padding-left:1px;color:#ffb765;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
   .capsule-pct__number{font-size:9.5px;line-height:1;letter-spacing:-.035em}
   .capsule-pct__mark{margin-top:1px;font-size:6px;line-height:1;opacity:.82}
   .overview-grid{display:grid;grid-template-columns:60px repeat(7,minmax(0,1fr)) 31px;gap:4px;align-items:center}
   .overview-day{color:rgba(240,200,150,.3);font-size:7.5px;text-align:center}
   .overview-project-name{overflow:hidden;color:rgba(245,225,195,.65);font-size:8.5px;text-overflow:ellipsis;white-space:nowrap;transition:opacity 150ms ease,color 150ms ease}
-  .overview-cell{display:block;aspect-ratio:1;min-height:19px;border:1px solid rgba(255,203,143,.045);border-radius:5px;transition:opacity 150ms ease,transform 150ms ease,border-color 150ms ease}
+  .overview-cell{display:block;aspect-ratio:1;min-height:17px;border:1px solid rgba(255,203,143,.045);border-radius:5px;transition:opacity 150ms ease,transform 150ms ease,border-color 150ms ease}
   .overview-cell:hover{border-color:rgba(255,186,112,.46);transform:scale(1.1)}
   .overview-total{color:rgba(255,220,178,.64);font-size:8px;font-weight:650;text-align:right;font-variant-numeric:tabular-nums;transition:opacity 150ms ease,color 150ms ease}
-  .overview-footer-grid{display:grid;grid-template-columns:60px repeat(7,minmax(0,1fr)) 31px;gap:4px;margin-top:7px;padding-top:7px;border-top:1px solid rgba(255,190,120,.07)}
+  .overview-footer-grid{display:grid;grid-template-columns:60px repeat(7,minmax(0,1fr)) 31px;gap:4px;margin-top:4px;padding-top:4px;border-top:1px solid rgba(255,190,120,.07)}
   .overview-footer-grid span{color:rgba(240,200,150,.28);font-size:7px;text-align:center;font-variant-numeric:tabular-nums}
   .overview-footer-grid span:first-child{text-align:left}.overview-footer-grid span:last-child{text-align:right}
-  .overview-range-switch{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;margin-top:16px;padding:2px;border:1px solid rgba(255,190,120,.08);border-radius:9px;background:rgba(8,5,4,.24)}
-  .overview-range-button{height:26px;padding:0;border:0;border-radius:7px;cursor:pointer;font-size:9px;font-weight:620}
-  .overview-trend{position:relative;height:112px}
-  .overview-trend-grid{position:absolute;inset:3px 0 18px;display:grid;grid-template-rows:repeat(3,1fr)}
+  .overview-range-switch{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;margin-top:10px;padding:2px;border:1px solid rgba(255,190,120,.08);border-radius:9px;background:rgba(8,5,4,.24)}
+  .overview-range-button{height:24px;padding:0;border:0;border-radius:7px;cursor:pointer;font-size:9px;font-weight:620}
+  .overview-trend{position:relative;height:84px}
+  .overview-trend-grid{position:absolute;inset:3px 0 14px;display:grid;grid-template-rows:repeat(3,1fr)}
   .overview-trend-grid i{border-top:1px solid rgba(255,190,120,.06)}
-  .overview-trend svg{position:absolute;inset:0;width:100%;height:96px;overflow:visible}
+  .overview-trend svg{position:absolute;inset:0;width:100%;height:70px;overflow:visible}
   .overview-trend-area{fill:url(#overviewTrendArea)}
   .overview-trend-line{fill:none;stroke:url(#overviewTrendLine);stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 4px rgba(255,90,20,.42))}
   .overview-trend-latest{fill:#ffd18c;stroke:#9e3811;stroke-width:1.4}
@@ -115,6 +109,11 @@
           </g>
           <circle cx="150" cy="125" r="52" fill="none" stroke="rgba(255,200,140,.1)" stroke-width="10"></circle>
           <circle cx="150" cy="125" r="52" fill="none" stroke="url(#ringLavaA)" stroke-width="10" stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="{{ ringOffset }}" transform="rotate(-90 150 125)" style="filter:drop-shadow(0 0 6px rgba(255,90,20,.85));transition:stroke-dashoffset .6s ease"></circle>
+          <text id="lava-ring-project" x="150" y="108" text-anchor="middle" fill="rgba(255,180,110,.85)" font-size="11" font-weight="600"></text>
+          <text x="150" y="135" text-anchor="middle" fill="#fff2dd">
+            <tspan id="lava-ring-time-primary" font-size="24" font-weight="300"></tspan><tspan id="lava-ring-time-seconds" fill="rgba(255,226,190,.68)" font-size="11" font-weight="520"></tspan>
+          </text>
+          <text id="lava-ring-goal" x="150" y="154" text-anchor="middle" fill="rgba(255,160,90,.85)" font-size="11.5" font-weight="600"></text>
         </svg>
         <sc-for list="{{ weekFlames }}" as="f" hint-placeholder-count="6">
           <div style="{{ f.labelStyle }}">
@@ -122,13 +121,6 @@
             <span style="{{ f.wdStyle }}">{{ f.wd }}</span>
           </div>
         </sc-for>
-        <div class="panel-ring-readout">
-          <span class="panel-ring-readout__project">{{ activeName }}</span>
-          <span class="panel-ring-readout__time" aria-label="{{ timeStr }}">
-            <span class="panel-ring-readout__primary">{{ timePrimaryStr }}</span><span class="panel-ring-readout__seconds">{{ timeSecondsStr }}</span>
-          </span>
-          <span class="panel-ring-readout__goal">{{ pctStr }} · {{ goalStr }}</span>
-        </div>
       </div>
 
       <div style="display:flex;justify-content:space-between;padding:0 4px">
@@ -163,7 +155,7 @@
 
   <!-- ============ 历史总览态 ============ -->
   <sc-if value="{{ viewOverview }}" hint-placeholder-val="{{ false }}">
-    <div class="lava-scroll-surface" data-lava-drag-surface="" style="width:300px;min-height:704px;padding:22px;border-radius:24px;display:flex;flex-direction:column;background:linear-gradient(158deg,rgba(48,29,18,.86),rgba(20,12,8,.82));backdrop-filter:blur(28px) saturate(150%);-webkit-backdrop-filter:blur(28px) saturate(150%);border:1px solid rgba(255,180,90,.17);box-shadow:0 18px 36px -30px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,225,170,.15)">
+    <div class="lava-scroll-surface" data-lava-drag-surface="" style="width:300px;min-height:704px;padding:16px;border-radius:24px;display:flex;flex-direction:column;background:linear-gradient(158deg,rgba(48,29,18,.86),rgba(20,12,8,.82));backdrop-filter:blur(28px) saturate(150%);-webkit-backdrop-filter:blur(28px) saturate(150%);border:1px solid rgba(255,180,90,.17);box-shadow:0 18px 36px -30px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,225,170,.15)">
       <div style="display:grid;grid-template-columns:34px 1fr 28px;align-items:center;gap:9px">
         <button onClick="{{ toPanel }}" title="返回计时" aria-label="返回计时" style="width:34px;height:34px;padding:0;border:1px solid rgba(255,170,84,.24);border-radius:10px;background:rgba(255,130,48,.055);color:#ffcf99;cursor:pointer;font-size:17px;display:grid;place-items:center">←</button>
         <div><strong style="display:block;color:#f8e8d0;font-size:13.5px;font-weight:650">{{ overviewTitle }}</strong><span style="display:block;margin-top:2px;color:rgba(240,200,150,.4);font-size:9px">{{ overviewDateRange }}</span></div>
@@ -174,7 +166,7 @@
         <button class="overview-range-button" onClick="{{ setOverviewRange30 }}" aria-pressed="{{ overviewRange30Active }}" style="{{ overviewRange30Style }}">30 天</button>
         <button class="overview-range-button" onClick="{{ setOverviewRangeAll }}" aria-pressed="{{ overviewRangeAllActive }}" style="{{ overviewRangeAllStyle }}">全部</button>
       </div>
-      <div style="display:grid;grid-template-columns:1fr auto;align-items:end;gap:10px;margin-top:17px;padding-bottom:15px;border-bottom:1px solid rgba(255,190,120,.1)">
+      <div style="display:grid;grid-template-columns:1fr auto;align-items:end;gap:10px;margin-top:10px;padding-bottom:10px;border-bottom:1px solid rgba(255,190,120,.1)">
         <div>
           <small style="display:block;margin-bottom:5px;color:rgba(240,200,150,.48);font-size:9.5px;letter-spacing:.08em">总专注时长</small>
           <span style="display:flex;align-items:baseline;gap:7px"><strong style="color:#fff2dd;font-size:28px;font-weight:310;letter-spacing:-.04em;font-variant-numeric:tabular-nums">{{ overviewTotalStr }}</strong><em style="padding:3px 5px;border:1px solid rgba(255,183,101,.18);border-radius:6px;color:#ffb765;font-size:7.5px;font-style:normal;font-weight:680;letter-spacing:.04em">{{ overviewPeriodTag }}</em></span>
@@ -188,8 +180,8 @@
         </div>
       </div>
 
-      <div style="padding-top:15px">
-        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:9px"><strong style="color:rgba(245,225,195,.82);font-size:10.5px;font-weight:650">专注趋势</strong><span style="overflow:hidden;color:rgba(240,200,150,.34);font-size:8.5px;text-overflow:ellipsis;white-space:nowrap">{{ overviewTrendCaption }}</span></div>
+      <div style="padding-top:10px">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:6px"><strong style="color:rgba(245,225,195,.82);font-size:10.5px;font-weight:650">专注趋势</strong><span style="overflow:hidden;color:rgba(240,200,150,.34);font-size:8.5px;text-overflow:ellipsis;white-space:nowrap">{{ overviewTrendCaption }}</span></div>
         <div class="overview-trend" role="img" aria-label="{{ overviewTrendAriaLabel }}">
           <div class="overview-trend-grid" aria-hidden="true"><i></i><i></i><i></i></div>
           <svg viewBox="0 0 256 96" preserveAspectRatio="none" aria-hidden="true">
@@ -203,12 +195,12 @@
           </svg>
           <div class="overview-trend-axis"><span>{{ overviewTrendAxisStart }}</span><span>{{ overviewTrendAxisMiddle }}</span><span>今天</span></div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr auto;gap:6px;margin-top:8px;padding:8px 9px;border-top:1px solid rgba(255,190,120,.08);border-bottom:1px solid rgba(255,190,120,.08)"><span style="color:rgba(240,200,150,.4);font-size:8.5px">{{ overviewInsightText }}</span><strong style="color:#ffca8c;font-size:9px;font-weight:650">{{ overviewInsightValue }}</strong></div>
+        <div style="display:grid;grid-template-columns:1fr auto;gap:6px;margin-top:5px;padding:6px 9px;border-top:1px solid rgba(255,190,120,.08);border-bottom:1px solid rgba(255,190,120,.08)"><span style="color:rgba(240,200,150,.4);font-size:8.5px">{{ overviewInsightText }}</span><strong style="color:#ffca8c;font-size:9px;font-weight:650">{{ overviewInsightValue }}</strong></div>
       </div>
 
-      <div style="margin-top:12px;padding-top:15px;border-top:1px solid rgba(255,190,120,.09)">
-        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:9px"><strong style="color:rgba(245,225,195,.82);font-size:10.5px;font-weight:650">项目排行</strong><span style="color:rgba(240,200,150,.34);font-size:8.5px">{{ overviewProjectCaption }}</span></div>
-      <div style="display:grid;gap:7px">
+      <div style="margin-top:8px;padding-top:10px;border-top:1px solid rgba(255,190,120,.09)">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:6px"><strong style="color:rgba(245,225,195,.82);font-size:10.5px;font-weight:650">项目排行</strong><span style="color:rgba(240,200,150,.34);font-size:8.5px">{{ overviewProjectCaption }}</span></div>
+      <div style="display:grid;gap:5px">
         <sc-for list="{{ overviewProjects }}" as="p" hint-placeholder-count="5">
           <button onClick="{{ p.onFocus }}" aria-label="{{ p.focusLabel }}" aria-pressed="{{ p.focused }}" style="{{ p.rankRowStyle }}">
             <span style="{{ p.rankNumberStyle }}">{{ p.rank }}</span>
@@ -217,11 +209,11 @@
           </button>
         </sc-for>
       </div>
-      <div style="display:grid;grid-template-columns:1fr auto;gap:6px;margin-top:10px;padding:8px 9px;border-top:1px solid rgba(255,190,120,.08);border-bottom:1px solid rgba(255,190,120,.08)"><span style="color:rgba(240,200,150,.4);font-size:8.5px">{{ overviewFocusCaption }}</span><strong style="color:#ffca8c;font-size:9px;font-weight:650">{{ overviewFocusLabel }}</strong></div>
+      <div style="display:grid;grid-template-columns:1fr auto;gap:6px;margin-top:6px;padding:6px 9px;border-top:1px solid rgba(255,190,120,.08);border-bottom:1px solid rgba(255,190,120,.08)"><span style="color:rgba(240,200,150,.4);font-size:8.5px">{{ overviewFocusCaption }}</span><strong style="color:#ffca8c;font-size:9px;font-weight:650">{{ overviewFocusLabel }}</strong></div>
       </div>
 
-      <div style="margin-top:12px;padding-top:15px;border-top:1px solid rgba(255,190,120,.09)">
-        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:0 0 9px"><strong style="color:rgba(245,225,195,.82);font-size:10.5px;font-weight:650">项目 × 日期</strong><span style="color:rgba(240,200,150,.34);font-size:8.5px">颜色越亮，投入越多</span></div>
+      <div style="margin-top:8px;padding-top:10px;border-top:1px solid rgba(255,190,120,.09)">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:0 0 6px"><strong style="color:rgba(245,225,195,.82);font-size:10.5px;font-weight:650">项目 × 日期</strong><span style="color:rgba(240,200,150,.34);font-size:8.5px">颜色越亮，投入越多</span></div>
         <div class="overview-grid">
           <span></span><sc-for list="{{ overviewDays }}" as="d" hint-placeholder-count="7"><span style="{{ d.style }}">{{ d.label }}</span></sc-for><span class="overview-day">合计</span>
           <sc-for list="{{ overviewProjects }}" as="p" hint-placeholder-count="5">
@@ -229,7 +221,7 @@
           </sc-for>
         </div>
         <div class="overview-footer-grid"><span>每日合计</span><sc-for list="{{ overviewDayTotals }}" as="d" hint-placeholder-count="7"><span>{{ d }}</span></sc-for><span>{{ overviewTotalCompactStr }}</span></div>
-        <p style="margin:10px 0 0;color:rgba(240,200,150,.28);font-size:8px;line-height:1.5">底部固定展示最近 7 日；点击上方项目排行，查看该项目每天的分布。</p>
+        <p style="margin:5px 0 0;color:rgba(240,200,150,.28);font-size:8px;line-height:1.4">底部固定展示最近 7 日；点击上方项目排行，查看该项目每天的分布。</p>
       </div>
     </div>
   </sc-if>
@@ -266,7 +258,7 @@
 
   <!-- ============ 设置态 ============ -->
   <sc-if value="{{ viewSettings }}" hint-placeholder-val="{{ false }}">
-    <div class="lava-scroll-surface" data-lava-drag-surface="" style="width:300px;padding:22px;border-radius:24px;display:flex;flex-direction:column;gap:20px;background:linear-gradient(158deg,rgba(48,29,18,.86),rgba(20,12,8,.82));backdrop-filter:blur(28px) saturate(150%);-webkit-backdrop-filter:blur(28px) saturate(150%);border:1px solid rgba(255,180,90,.17);box-shadow:0 26px 60px -24px rgba(0,0,0,.85),inset 0 1px 0 rgba(255,225,170,.15)">
+    <div class="lava-scroll-surface lava-internal-scroll" data-lava-internal-scroll="" data-lava-drag-surface="" role="region" aria-label="设置内容" tabindex="0" style="width:300px;padding:22px;border-radius:24px;display:flex;flex-direction:column;gap:20px;background:linear-gradient(158deg,rgba(48,29,18,.86),rgba(20,12,8,.82));backdrop-filter:blur(28px) saturate(150%);-webkit-backdrop-filter:blur(28px) saturate(150%);border:1px solid rgba(255,180,90,.17);box-shadow:0 26px 60px -24px rgba(0,0,0,.85),inset 0 1px 0 rgba(255,225,170,.15)">
 
       <div style="display:flex;align-items:center;justify-content:space-between">
         <span style="font-size:15px;font-weight:600;color:#f7ead2">设置</span>
@@ -542,6 +534,7 @@ class Component extends DCLogic {
 
   componentDidMount() {
     if (isTauriRuntime()) document.body.style.background = 'transparent';
+    this.installRootScrollLock();
     // 立即覆盖旧的运行标记，避免恢复后的暂停状态尚未落盘时再次退出。
     if (this._recoveredStoppedRun) {
       this._recoveredStoppedRun = false;
@@ -575,6 +568,7 @@ class Component extends DCLogic {
       this._unlistenScreenOff = unlisten;
     }).catch(() => {});
     this.runTimerTick();
+    this.syncRingReadout();
     this._directionPoll = setInterval(() => {
       if (this.state.view === 'capsule') this.refreshExpansionDirection();
     }, 120);
@@ -587,10 +581,75 @@ class Component extends DCLogic {
     if (this._unlistenScreenOff) this._unlistenScreenOff();
     clearInterval(this._directionPoll);
     if (this._sizeRaf) cancelAnimationFrame(this._sizeRaf);
+    if (this._preventRootScroll) {
+      window.removeEventListener('wheel', this._preventRootScroll, true);
+      window.removeEventListener('touchmove', this._preventRootScroll, true);
+    }
+    if (this._resetRootScroll) window.removeEventListener('scroll', this._resetRootScroll, true);
+    if (this._scrollInternalByKey) window.removeEventListener('keydown', this._scrollInternalByKey, true);
   }
   componentDidUpdate() {
     this.syncWindowToContent();
     this.pushTrayTitle();
+    this.syncRingReadout();
+  }
+
+  syncRingReadout() {
+    if (this.state.view !== 'panel') return;
+    const active = this.state.projects[this.state.proj] || this.state.projects[0];
+    if (!active) return;
+    const elapsed = this.activeElapsed();
+    const parts = this.timeParts(elapsed);
+    const pct = Math.max(0, Math.min(100, Math.round(elapsed / active.goal * 100)));
+    const values = {
+      'lava-ring-project': active.name,
+      'lava-ring-time-primary': parts.primary,
+      'lava-ring-time-seconds': parts.seconds,
+      'lava-ring-goal': pct + '% · ' + this.goalLabel(active.goal),
+    };
+    Object.entries(values).forEach(([id, value]) => {
+      const node = document.getElementById(id);
+      if (node && node.textContent !== value) node.textContent = value;
+    });
+  }
+
+  installRootScrollLock() {
+    this._resetRootScroll = () => {
+      if (window.scrollX !== 0 || window.scrollY !== 0) window.scrollTo(0, 0);
+      if (document.documentElement.scrollLeft !== 0) document.documentElement.scrollLeft = 0;
+      if (document.documentElement.scrollTop !== 0) document.documentElement.scrollTop = 0;
+      if (document.body.scrollLeft !== 0) document.body.scrollLeft = 0;
+      if (document.body.scrollTop !== 0) document.body.scrollTop = 0;
+    };
+    this._preventRootScroll = (event) => {
+      if (event.target && event.target.closest && event.target.closest('[data-lava-internal-scroll]')) return;
+      if (event.cancelable) event.preventDefault();
+      event.stopPropagation();
+      this._resetRootScroll();
+    };
+    window.addEventListener('wheel', this._preventRootScroll, { capture: true, passive: false });
+    window.addEventListener('touchmove', this._preventRootScroll, { capture: true, passive: false });
+    window.addEventListener('scroll', this._resetRootScroll, { capture: true, passive: true });
+    this._scrollInternalByKey = (event) => {
+      const surface = event.target && event.target.closest
+        ? event.target.closest('[data-lava-internal-scroll]')
+        : null;
+      if (!surface) return;
+      const page = Math.max(80, surface.clientHeight * 0.8);
+      const delta = event.key === 'PageDown' ? page
+        : event.key === 'PageUp' ? -page
+        : event.key === 'ArrowDown' ? 40
+        : event.key === 'ArrowUp' ? -40
+        : null;
+      if (event.key === 'Home') surface.scrollTop = 0;
+      else if (event.key === 'End') surface.scrollTop = surface.scrollHeight;
+      else if (delta != null) surface.scrollTop += delta;
+      else return;
+      event.preventDefault();
+      event.stopPropagation();
+    };
+    window.addEventListener('keydown', this._scrollInternalByKey, true);
+    this._resetRootScroll();
   }
 
   syncWindowToContent() {
