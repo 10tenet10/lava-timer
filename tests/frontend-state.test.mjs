@@ -230,6 +230,41 @@ test('every view exposes a close-window action', () => {
   assert.ok((html.match(/onClick="\{\{ hideWindow \}\}"/g) || []).length >= 4);
 });
 
+test('the native window shell cannot expose system scrollbars', () => {
+  const nativeSource = readFileSync(
+    new URL('../src-tauri/src/lib.rs', import.meta.url),
+    'utf8',
+  );
+
+  assert.match(
+    html,
+    /html,body\{[^}]*overflow:hidden!important;[^}]*overscroll-behavior:none/,
+  );
+  assert.match(
+    html,
+    /#dc-root,#dc-root>\.sc-host\{[^}]*overflow:hidden!important/,
+  );
+  assert.match(
+    html,
+    /\.lava-scroll-surface\{[^}]*overflow:hidden;[^}]*overscroll-behavior:none;[^}]*scrollbar-width:none/,
+  );
+  assert.match(
+    html,
+    /\.lava-scroll-surface::\-webkit-scrollbar\{display:none;width:0;height:0\}/,
+  );
+  assert.match(nativeSource, /setHasHorizontalScroller\(false\)/);
+  assert.match(nativeSource, /setHasVerticalScroller\(false\)/);
+  assert.match(nativeSource, /\.on_page_load\(\|webview, payload\|/);
+  assert.match(
+    nativeSource,
+    /setHorizontalScrollElasticity\(NSScrollElasticity::None\)/,
+  );
+  assert.match(
+    nativeSource,
+    /setVerticalScrollElasticity\(NSScrollElasticity::None\)/,
+  );
+});
+
 test('frontend runtime is bundled locally and loaded before support.js', () => {
   const reactScript = './vendor/react.production.min.js';
   const reactDomScript = './vendor/react-dom.production.min.js';

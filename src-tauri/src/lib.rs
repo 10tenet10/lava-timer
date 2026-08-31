@@ -2,6 +2,8 @@
 // 覆盖 src-tauri/src/lib.rs
 
 #[cfg(target_os = "macos")]
+use objc2_app_kit::{NSScrollElasticity, NSScrollView, NSView};
+#[cfg(target_os = "macos")]
 use std::ptr::NonNull;
 use std::{
     sync::{
@@ -20,6 +22,29 @@ use tauri::{
 use tauri_plugin_positioner::{Position, WindowExt};
 
 const EDGE_SNAP_THRESHOLD: f64 = 28.0;
+
+#[cfg(target_os = "macos")]
+fn lock_webview_scroll(view: &NSView) {
+    if let Some(scroll_view) = view.downcast_ref::<NSScrollView>() {
+        scroll_view.setHasHorizontalScroller(false);
+        scroll_view.setHasVerticalScroller(false);
+        scroll_view.setAutohidesScrollers(true);
+        scroll_view.setHorizontalScrollElasticity(NSScrollElasticity::None);
+        scroll_view.setVerticalScrollElasticity(NSScrollElasticity::None);
+    }
+
+    for subview in view.subviews() {
+        lock_webview_scroll(&subview);
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn install_webview_scroll_lock(window: &tauri::Webview) -> tauri::Result<()> {
+    window.with_webview(|webview| unsafe {
+        let view: &NSView = &*webview.inner().cast();
+        lock_webview_scroll(view);
+    })
+}
 
 #[derive(Default)]
 struct ScreenInactiveState {
@@ -449,9 +474,17 @@ pub fn run() {
             snap_main_window_to_edge,
             latest_screen_inactive_at
         ])
+        .on_page_load(|webview, payload| {
+            #[cfg(target_os = "macos")]
+            if matches!(payload.event(), tauri::webview::PageLoadEvent::Finished) {
+                let _ = install_webview_scroll_lock(webview);
+            }
+        })
         .setup(|app| {
             #[cfg(target_os = "macos")]
-            install_screen_off_observers(app.handle().clone());
+            {
+                install_screen_off_observers(app.handle().clone());
+            }
 
             // 右键菜单(左键弹面板,右键退出)
             let quit = MenuItem::with_id(app, "quit", "退出 LavaTimer", true, None::<&str>)?;
