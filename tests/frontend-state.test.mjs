@@ -211,3 +211,27 @@ test('macOS bundle includes the tray icon required during setup', () => {
 
   assert.ok(config.bundle.resources.includes('icons/tray.png'));
 });
+
+test('main window is visible on launch and macOS uses menu bar app mode', () => {
+  const config = JSON.parse(
+    readFileSync(new URL('../src-tauri/tauri.conf.json', import.meta.url), 'utf8'),
+  );
+  const infoPlist = readFileSync(
+    new URL('../src-tauri/Info.plist', import.meta.url),
+    'utf8',
+  );
+
+  assert.equal(config.app.windows[0].visible, true);
+  assert.match(infoPlist, /<key>LSUIElement<\/key>\s*<true\/>/);
+});
+
+test('frontend runtime is bundled locally and loaded before support.js', () => {
+  const reactScript = './vendor/react.production.min.js';
+  const reactDomScript = './vendor/react-dom.production.min.js';
+  const supportScript = './support.js';
+
+  assert.ok(html.indexOf(reactScript) < html.indexOf(supportScript));
+  assert.ok(html.indexOf(reactDomScript) < html.indexOf(supportScript));
+  assert.ok(readFileSync(new URL(`../src/${reactScript.slice(2)}`, import.meta.url)).length > 0);
+  assert.ok(readFileSync(new URL(`../src/${reactDomScript.slice(2)}`, import.meta.url)).length > 0);
+});
