@@ -59,7 +59,7 @@ The release remains a candidate. GitHub stable release and main were still 1.0.5
 
 ### Still required before stable publication
 
-- Resolve and reverify actual menu bar visibility and click-to-reopen behavior. Current ControlCenter logs still report a blocked host for `com.kenji.lava-timer`. System Settings now lists an enabled `lava-timer` entry; that does not establish permission or visibility for the bundled app identity. No system preferences were changed.
+- Resolve and reverify actual menu bar visibility and click-to-reopen behavior. Current ControlCenter logs still report a blocked host for `com.kenji.lava-timer`. System Settings now lists an enabled `lava-timer` entry; that does not establish permission or visibility for the bundled app identity. At the initial audit no system preferences were changed; the subsequent explicitly authorized single-switch off/on check is recorded below.
 - Multi-hour hidden-window timing acceptance.
 - macOS 11 hardware compatibility is not tested on this machine. Signature remains ad-hoc and notarization is not performed.
 
@@ -81,3 +81,12 @@ The paused WebView backup was taken after normal application exit. No user proje
 
 Current local logs: `/tmp/lava-timer-1.0.6-check-20261103.log`, `/tmp/lava-timer-1.0.6-build-20261103.log`, `/tmp/lava-timer-1.0.6-dmg-verify-20261103.log`.
 Browser and native screenshots: `/tmp/lava-timer-release-20261103/`.
+
+
+### Authorized menu bar off/on follow-up
+
+On 2026-11-03, the user explicitly approved toggling the `lava-timer` menu bar switch off and back on. The UI confirms it is finally on. Relaunching the installed bundle did not resolve the issue: at 10:14:20.560 Asia/Shanghai, ControlCenter still logged `Starting to track blocked host` for the installed bundle. The stable release gate remains closed.
+
+The existing active timer was settled at 24:11 before restart, its record was preserved, and its original running state was restored after the check. This supersedes the earlier acceptance endpoint that left the app paused at 23:09. No timer data was reset or removed.
+
+Cloud validation on the documentation-follow-up head `20dc07951a5720cdee1c5cb4832c62e47637bef8` also passed: [Check run 41564451739](https://github.com/10tenet10/lava-timer/actions/runs/41564451739). This latest follow-up changes release evidence only, not source or the accepted DMG.

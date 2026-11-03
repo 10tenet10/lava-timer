@@ -31,3 +31,14 @@ The installed app is still logged as `Starting to track blocked host` by Control
 System Settings now shows an enabled entry named `lava-timer`. A separately launched raw binary was logged as `.adhocBinary(lava-timer)` while the installed app was logged by bundle identifier, so the enabled row is not proof that the installed bundle's status item is permitted. No toggles or preference databases were changed.
 
 The candidate adds an explicit application-menu action, `LavaTimer → 显示计时器`, with app-local Cmd+Shift+L. Native verification confirms the action is present and the window can be recovered. This mitigates loss of access but does not resolve the menu bar blocker.
+
+
+### Authorized off/on check — 2026-11-03 10:13–10:14 (Asia/Shanghai)
+
+With explicit user approval, toggled only the `lava-timer` Allow in Menu Bar switch from on to off and back on. The UI confirmed both transitions and the final on state. No preference databases were deleted and no other system settings were changed.
+
+Quit and relaunched `/Applications/LavaTimer.app` normally. At 10:14:20.560, ControlCenter still logged `Starting to track blocked host; (bid:com.kenji.lava-timer-Item-0-83293)`. Therefore this off/on workaround did not unblock the installed bundle; actual menu bar display/click acceptance remains blocked.
+
+The timer was running at the start of this check. Settled it at 24:11 before restart, confirmed 24:11 was retained on reopen, then restored the original running state. No project edits or resets occurred.
+
+Local evidence: `/tmp/lava-timer-menubar-retoggle-relaunch-20261103.log` and `/tmp/lava-timer-release-20261103/menubar-retoggled.png`.

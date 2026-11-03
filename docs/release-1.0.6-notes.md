@@ -10,7 +10,7 @@ This candidate repairs production rendering and adds another way to reopen the t
 
 ## Release gate
 
-Do not mark this candidate as the latest stable release while the menu bar blocker remains unresolved. The current macOS 26.3 machine logs `Starting to track blocked host` for the installed application. The system settings entry named `lava-timer` is enabled, but that alone does not prove the bundled app is allowed or visible. No system settings or preference databases have been changed.
+Do not mark this candidate as the latest stable release while the menu bar blocker remains unresolved. The current macOS 26.3 machine logs `Starting to track blocked host` for the installed application. The system settings entry named `lava-timer` is enabled, but that alone does not prove the bundled app is allowed or visible. An explicitly authorized off/on check of that single switch and normal app relaunch did not unblock the installed app. No preference databases were deleted and no other system settings were changed.
 
 The release verification document tracks physical lock, display-off, sleep/wake and duration checks. A passing CI run verifies tests and production app packaging; it does not prove menu bar visibility or physical power-state behavior.
 
