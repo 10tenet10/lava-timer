@@ -94,7 +94,7 @@ Clearing the app’s WebView data deletes your records. Removing only the applic
 
 On the macOS 26.3 test machine, the system currently blocks the menu bar item even though the timer window works. This remains unresolved in the 1.0.6 candidate. Use the Dock or Applications entry to recover a hidden window. If LavaTimer appears under **System Settings → Menu Bar → Allow in Menu Bar**, check whether it is enabled. Restarting macOS is a diagnostic step, not a verified fix.
 
-The 1.0.6 candidate has not completed physical lock/sleep/display-off and long-duration acceptance testing. See the [release verification record](docs/release-1.0.6-verification.md) for the release gate and evidence.
+The 1.0.6 candidate has completed a physical lock/unlock, display-off, short sleep/wake, and approximately 86-second hidden-window timing check. Multi-hour operation and compatibility across macOS versions have not completed acceptance testing. See the [release verification record](docs/release-1.0.6-verification.md) for the release gate and evidence.
 
 ## Local Development
 
