@@ -15,6 +15,8 @@ use std::{
     thread,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
+#[cfg(target_os = "macos")]
+use tauri::menu::MenuItemKind;
 use tauri::{
     image::Image,
     menu::{Menu, MenuItem},
@@ -137,9 +139,18 @@ fn pause_tray_timer_at(app: &tauri::AppHandle, stopped_at: u64) {
 }
 
 fn install_tray_timer_updater(app: tauri::AppHandle) {
-    thread::spawn(move || loop {
-        thread::sleep(Duration::from_secs(1));
-        apply_tray_timer_title(&app, unix_time_ms());
+    thread::spawn(move || {
+        let mut ticks = 0;
+        loop {
+            thread::sleep(Duration::from_secs(1));
+            apply_tray_timer_title(&app, unix_time_ms());
+            ticks += 1;
+            if ticks <= 5 && std::env::var_os("LAVA_TRAY_DIAGNOSTICS").is_some() {
+                if let Some(tray) = app.tray_by_id("main-tray") {
+                    eprintln!("LavaTimer tray tick {ticks}: {:?}", tray.rect());
+                }
+            }
+        }
     });
 }
 
@@ -489,6 +500,19 @@ pub fn run() {
             #[cfg(target_os = "macos")]
             {
                 install_screen_off_observers(app.handle().clone());
+                // 系统菜单栏项被隐藏时，仍可从应用菜单或快捷键恢复窗口。
+                let app_menu = Menu::default(app.handle())?;
+                let show = MenuItem::with_id(
+                    app,
+                    "show-timer",
+                    "显示计时器",
+                    true,
+                    Some("CmdOrCtrl+Shift+L"),
+                )?;
+                if let Some(MenuItemKind::Submenu(application_menu)) = app_menu.items()?.first() {
+                    application_menu.prepend(&show)?;
+                }
+                app.set_menu(app_menu)?;
             }
 
             // 右键菜单(左键弹面板,右键退出)
@@ -501,7 +525,7 @@ pub fn run() {
                 // 打包资源异常时仍可使用编译进二进制的图标，避免应用启动即退出。
                 .or_else(|_| Image::from_bytes(include_bytes!("../icons/tray.png")))?;
 
-            TrayIconBuilder::with_id("main-tray")
+            let tray = TrayIconBuilder::with_id("main-tray")
                 .icon(icon)
                 .icon_as_template(true) // 关键:自动适配深浅色菜单栏
                 .title("Lava") // 即使模板图标被系统隐藏，仍保留可识别入口。
@@ -535,9 +559,24 @@ pub fn run() {
                 })
                 .build(app)?;
 
+            #[cfg(target_os = "macos")]
+            if std::env::var_os("LAVA_TRAY_DIAGNOSTICS").is_some() {
+                let state = tray.with_inner_tray_icon(|inner| {
+                    inner
+                        .ns_status_item()
+                        .map(|item| (item.isVisible(), item.length()))
+                });
+                eprintln!("LavaTimer tray state: {state:?}, rect: {:?}", tray.rect());
+                eprintln!("LavaTimer monitors: {:?}", app.available_monitors());
+            }
             install_tray_timer_updater(app.handle().clone());
 
             Ok(())
+        })
+        .on_menu_event(|app, event| {
+            if event.id.as_ref() == "show-timer" {
+                show_main_window(app);
+            }
         })
         .on_window_event(|window, event| {
             match event {

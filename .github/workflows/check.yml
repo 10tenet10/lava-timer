@@ -22,4 +22,7 @@ jobs:
         with:
           workspaces: src-tauri -> target
       - run: npm ci
+      - run: cargo fmt --manifest-path src-tauri/Cargo.toml --check
       - run: npm run check
+      - name: Build production app bundle
+        run: npm run build -- --bundles app

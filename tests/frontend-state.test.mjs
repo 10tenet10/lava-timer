@@ -183,6 +183,21 @@ test('selected history range is persisted', () => {
   assert.equal(saved.overviewRange, '30');
 });
 
+test('history summaries never round focus time up to an unearned minute or hour', () => {
+  const now = new Date(2026, 7, 30, 15, 0, 0).getTime();
+  const { component } = createComponent({ now });
+  for (const [seconds, expected] of [[13, '<1m'], [59, '<1m'], [60, '1m'], [1292, '21m'], [3599, '59m'], [39599, '10h']]) {
+    component.state = savedState({
+      overviewRange: 'all',
+      projects: [{ id: 'project-a', name: '项目 A', goal: 7200, sec: seconds }],
+    });
+    const values = component.renderVals();
+    assert.equal(values.overviewMaxDayStr, expected);
+    assert.equal(values.overviewAverageStr, expected);
+    if (seconds < 3600) assert.equal(values.overviewTotalStr, expected);
+  }
+});
+
 test('destructive reset and delete actions require confirmation', () => {
   const now = new Date(2026, 7, 30, 15, 0, 0).getTime();
   const { component, window } = createComponent({ now });
@@ -319,4 +334,44 @@ test('frontend runtime is bundled locally and loaded before support.js', () => {
   assert.ok(html.indexOf(reactDomScript) < html.indexOf(supportScript));
   assert.ok(readFileSync(new URL(`../src/${reactScript.slice(2)}`, import.meta.url)).length > 0);
   assert.ok(readFileSync(new URL(`../src/${reactDomScript.slice(2)}`, import.meta.url)).length > 0);
+});
+
+test('release policy permits the runtime to reload its own template', () => {
+  const config = JSON.parse(readFileSync(new URL('../src-tauri/tauri.conf.json', import.meta.url)));
+  const directives = Object.fromEntries(config.app.security.csp.split(';').map((part) => {
+    const [name, ...sources] = part.trim().split(/\s+/);
+    return [name, sources];
+  }));
+  assert.ok(directives['connect-src'].includes("'self'"));
+  assert.ok(directives['connect-src'].includes('ipc:'));
+  assert.ok(!directives['connect-src'].includes('*'));
+});
+
+test('native event bridge subscribes and forwards the event payload', async () => {
+  const config = JSON.parse(readFileSync(new URL('../src-tauri/tauri.conf.json', import.meta.url)));
+  assert.equal(config.app.withGlobalTauri, true);
+  const { window } = createComponent({ now: Date.now() });
+  const subscriptions = [];
+  window.__TAURI__ = { event: { listen: async (name, handler) => {
+    subscriptions.push({ name, handler });
+    return () => {};
+  } } };
+  // Run only the event bridge from the real component source.
+  const context = vm.createContext({ window, Promise });
+  const bridge = logicMatch[1].match(/function listenTauriEvent\(name, handler\) \{[\s\S]*?\n\}/)[0];
+  vm.runInContext(bridge, context);
+  let payload;
+  await context.listenTauriEvent('lava://screen-off', (value) => { payload = value; });
+  assert.equal(subscriptions[0].name, 'lava://screen-off');
+  subscriptions[0].handler({ payload: 1234 });
+  assert.equal(payload, 1234);
+});
+
+// The renderer creates style elements after boot; a build-time hash does not
+// authorize those elements and causes browsers to ignore unsafe-inline.
+test('bundling preserves the dynamic style policy without disabling script protection', () => {
+  const config = JSON.parse(readFileSync(new URL('../src-tauri/tauri.conf.json', import.meta.url)));
+  assert.deepEqual(config.app.security.dangerousDisableAssetCspModification, ['style-src']);
+  assert.match(config.app.security.csp, /style-src 'self' 'unsafe-inline'/);
+  assert.doesNotMatch(config.app.security.csp, /script-src[^;]*'unsafe-inline'/);
 });

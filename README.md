@@ -1,22 +1,22 @@
 <p align="center">
-  <img src="src-tauri/icons/readme-icon.png" width="96" height="96" alt="LavaTimer 熔岩沙漏图标">
+  <img src="src-tauri/icons/readme-icon.png" width="96" height="96" alt="LavaTimer lava hourglass icon">
 </p>
 
 <h1 align="center">LavaTimer</h1>
 
 <p align="center">
-  简体中文 · <a href="README.en.md">English</a>
+  English · <a href="README.zh-CN.md">简体中文</a>
 </p>
 
 <p align="center">
-  一枚安静驻留桌面的多项目专注计时器。<br>
-  轻量开始，清楚推进，回头看见时间去了哪里。
+  A quiet, multi-project focus timer that lives on your desktop.<br>
+  Start lightly, make steady progress, and see where your time went.
 </p>
 
 <p align="center">
-  <a href="https://github.com/10tenet10/lava-timer/releases/latest"><strong>下载最新版</strong></a>
+  <a href="https://github.com/10tenet10/lava-timer/releases/latest"><strong>Download the latest release</strong></a>
   ·
-  <a href="#本地开发">本地开发</a>
+  <a href="#local-development">Local development</a>
   ·
   <a href="LICENSE">MIT License</a>
 </p>
@@ -28,96 +28,102 @@
   <img alt="MIT License" src="https://img.shields.io/badge/license-MIT-FF7A2D?style=flat-square">
 </p>
 
-> **项目状态：功能完整，进入维护模式。** 后续以缺陷修复和兼容性维护为主，不再扩张产品范围。
+> **Project status: Feature-complete and in maintenance mode.** Future work will focus on bug fixes and compatibility maintenance rather than expanding the product scope.
 
-## 三种形态
+## Three Views
 
-LavaTimer 会随需要的信息密度自然收放：留在桌面一角、展开查看今天的进度，或回顾过去七天的投入。
+LavaTimer adapts to the amount of information you need: keep it tucked into a corner of your desktop, expand it to check today's progress, or look back at how you spent your time.
 
-### 胶囊态 · 不打断当前工作
+### Capsule · Stay Focused
 
-只留下项目、时间、进度和开始按钮。
-
-<p align="center">
-  <img src="design-demos/readme-demo/assets/capsule.png" width="380" alt="LavaTimer 胶囊态">
-</p>
-
-### 专注面板 · 看清今天的推进
-
-当前项目、每日目标、七日趋势和项目进度集中在可拖动的透明面板里。
+Shows only the active project, elapsed time, progress, and start button.
 
 <p align="center">
-  <img src="design-demos/readme-demo/assets/panel.png" width="380" alt="LavaTimer 专注面板">
+  <img src="design-demos/readme-demo/assets/capsule.png" width="380" alt="LavaTimer capsule view">
 </p>
 
-### 历史总览 · 看见时间的去向
+### Focus Panel · See Today's Progress
 
-在 7 天、30 天和全部记录之间切换，通过趋势、项目排行和日期热力图回顾投入；点击项目即可聚焦它的时间分布。
+The active project, daily goal, seven-day trend, and project progress come together in a draggable, translucent panel.
 
 <p align="center">
-  <img src="design-demos/readme-demo/assets/overview.png" width="380" alt="LavaTimer 历史总览">
+  <img src="design-demos/readme-demo/assets/panel.png" width="380" alt="LavaTimer focus panel">
 </p>
 
-## 功能
+### History Overview · See Where Your Time Went
 
-- 多项目独立计时与每日目标
-- 完整面板、紧凑胶囊和 7 天 / 30 天 / 全部历史总览
-- 菜单栏显示当前计时，点击显示或隐藏窗口
-- 桌面悬浮、屏幕边缘吸附和自动选择展开方向
-- macOS 锁屏、休眠、熄屏或屏幕保护启动时自动暂停
-- 本地保存计时状态与历史记录，无需账户或网络
-- 异常退出后只结算到最后一次存活记录，重新打开时保持暂停
+Switch between the last 7 days, the last 30 days, and all records. Review trends, project rankings, and the calendar heatmap, or select a project to focus on its time distribution.
 
-## 安装
+<p align="center">
+  <img src="design-demos/readme-demo/assets/overview.png" width="380" alt="LavaTimer history overview">
+</p>
 
-1. 从 [Releases](https://github.com/10tenet10/lava-timer/releases/latest) 下载最新的 `.dmg`。
-2. 打开镜像，将 LavaTimer 拖入“应用程序”。
-3. 从“应用程序”启动；LavaTimer 会驻留在菜单栏。
+## Features
 
-当前预构建版本面向 **Apple Silicon（M1 或更新芯片）**，最低支持 macOS 11。发布包使用 ad-hoc 签名，尚未经过 Apple notarization；首次打开时可能需要前往“系统设置 → 隐私与安全性”确认运行。
+- Independent timers and daily goals for multiple projects
+- Full panel, compact capsule, and 7-day / 30-day / all-time history views
+- Current timer in the menu bar; click to show or hide the window
+- Always-on-top desktop window, edge snapping, and automatic expansion direction
+- Automatic pause when macOS locks, sleeps, turns off the display, or starts the screen saver
+- Local timer state and history storage with no account or network connection required
+- Crash-safe recovery that records time only up to the last heartbeat and reopens in a paused state
 
-## 使用方式
+## Installation
 
-1. 在设置中创建项目并设定每日目标。
-2. 从胶囊或完整面板开始计时；计时中切换项目会自动结算旧项目。
-3. 在历史总览中切换时间范围，查看项目投入、趋势和连续打卡情况。
+1. Download the latest `.dmg` from [Releases](https://github.com/10tenet10/lava-timer/releases/latest).
+2. Open the disk image and drag LavaTimer into Applications.
+3. Launch LavaTimer from Applications to show the timer window. The menu bar item provides another entry when macOS allows it.
 
-关闭悬浮窗口只会隐藏它，计时仍在菜单栏继续。完全退出应用或异常退出后，再次打开会恢复为暂停状态，不会把离线时间计入专注。
+The current prebuilt release targets **Apple Silicon (M1 or newer)** and requires macOS 11 or later. The release is ad-hoc signed and has not been notarized by Apple, so you may need to allow it under **System Settings → Privacy & Security** the first time you open it.
 
-## 数据与隐私
+## Usage
 
-项目设置、每日计时和历史记录保存在应用 WebView 的本地存储中。LavaTimer 不创建账户、不上传记录，也不提供云同步或自动备份。
+1. Create a project and set its daily goal in Settings.
+2. Start a timer from the capsule or full panel. Switching projects while a timer is running automatically records time for the previous project.
+3. Change the time range in the history overview to review project time, trends, and streaks.
 
-卸载应用或清除 WebView 数据会删除记录，请在操作前确认不再需要这些数据。
+Closing the floating window only hides it; the timer continues running. To reopen it, click the Dock icon or open LavaTimer again from Applications. When LavaTimer is active, choose **LavaTimer → 显示计时器** or press **⌘⇧L**. After the app is quit or exits unexpectedly, it reopens in a paused state and does not count offline time as focus time.
 
-## 本地开发
+## Data and Privacy
 
-需要 Node.js 22+、Rust stable 和 macOS Xcode Command Line Tools。
+Project settings, daily timing data, and history are stored locally in the app WebView's local storage. LavaTimer does not create accounts, upload records, provide cloud sync, or create automatic backups.
+
+Clearing the app’s WebView data deletes your records. Removing only the application bundle may leave those records on disk; it is not a reliable way to erase them. There is no built-in backup or restore workflow.
+
+## Known Limitations
+
+On the macOS 26.3 test machine, the system currently blocks the menu bar item even though the timer window works. This remains unresolved in the 1.0.6 candidate. Use the Dock or Applications entry to recover a hidden window. If LavaTimer appears under **System Settings → Menu Bar → Allow in Menu Bar**, check whether it is enabled. Restarting macOS is a diagnostic step, not a verified fix.
+
+The 1.0.6 candidate has not completed physical lock/sleep/display-off and long-duration acceptance testing. See the [release verification record](docs/release-1.0.6-verification.md) for the release gate and evidence.
+
+## Local Development
+
+Requires Node.js 22+, stable Rust, and the macOS Xcode Command Line Tools.
 
 ```bash
 npm install
 npm run dev
 ```
 
-运行全部测试：
+Run all tests:
 
 ```bash
 npm run check
 ```
 
-构建 `.app` 与 `.dmg`：
+Build the `.app` and `.dmg` bundles:
 
 ```bash
 npm run build
 ```
 
-构建产物位于 `src-tauri/target/release/bundle/`。
+Build artifacts are written to `src-tauri/target/release/bundle/`.
 
-## 技术栈
+## Tech Stack
 
 - [Tauri 2](https://v2.tauri.app/)
 - Rust
-- Vanilla HTML、CSS 与 JavaScript
+- Vanilla HTML, CSS, and JavaScript
 
 ## License
 
